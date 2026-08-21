@@ -1,107 +1,307 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CalendarDays, Clock, MapPin } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  Building2,
+  CalendarDays,
+  ChevronDown,
+  Clock,
+  Globe2,
+  MapPin,
+  Search,
+  Users,
+  Video,
+} from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/events")({
   head: () => ({
     meta: [
-      { title: "Events & Reading Plans — Scripture Reader" },
+      { title: "Nationwide Church Events — Scripture Reader" },
       {
         name: "description",
         content:
-          "Upcoming gatherings, prayer meetings and guided reading plans to keep your time in scripture consistent.",
+          "Explore national gatherings, conferences, worship nights, and online events from your church network.",
       },
-      { property: "og:title", content: "Events & Reading Plans — Scripture Reader" },
+      { property: "og:title", content: "Nationwide Church Events — Scripture Reader" },
       {
         property: "og:description",
-        content: "Gatherings, prayer meetings and guided reading plans.",
+        content: "Find national and online events from your church network.",
       },
     ],
   }),
   component: EventsPage,
 });
 
+const CHURCHES = ["Grace Community Church", "Hope Fellowship Network", "New Life Church"];
+
 const EVENTS = [
   {
-    title: "Morning Prayer & Psalms",
-    date: "Every weekday",
-    time: "6:00 – 6:45 AM",
-    place: "Online · Community room",
-    tag: "Prayer",
+    id: "national-gathering",
+    church: "Grace Community Church",
+    title: "National Gathering 2027",
+    date: "April 17–19, 2027",
+    time: "Friday–Sunday",
+    city: "Dallas, TX",
+    type: "Conference",
+    attendance: "In person + livestream",
+    description:
+      "Three days of worship, Bible teaching, and practical ministry workshops for the whole church family.",
   },
   {
-    title: "Gospel of John — Study Group",
-    date: "Wednesdays",
-    time: "7:00 – 8:30 PM",
-    place: "Grace Chapel, Hall B",
-    tag: "Study",
+    id: "women-lead",
+    church: "Grace Community Church",
+    title: "Flourish Women’s Leadership Summit",
+    date: "May 8–9, 2027",
+    time: "9:00 AM–5:00 PM CT",
+    city: "Nashville, TN",
+    type: "Leadership",
+    attendance: "In person + livestream",
+    description:
+      "A weekend of encouragement and training for women serving in ministry, leadership, and their local communities.",
   },
   {
-    title: "Worship Night",
-    date: "First Friday",
-    time: "6:30 – 9:00 PM",
-    place: "Main Sanctuary",
-    tag: "Worship",
+    id: "youth-awake",
+    church: "Grace Community Church",
+    title: "Awake Youth Conference",
+    date: "June 24–26, 2027",
+    time: "Thursday–Saturday",
+    city: "Orlando, FL",
+    type: "Youth",
+    attendance: "In person",
+    description:
+      "Students from across the country gather for worship, small groups, service projects, and Scripture-centered teaching.",
   },
   {
-    title: "Youth Scripture Memory Challenge",
-    date: "Saturdays",
-    time: "10:00 AM – 12:00 PM",
-    place: "Youth Centre",
-    tag: "Youth",
+    id: "prayer-online",
+    church: "Grace Community Church",
+    title: "National Night of Prayer",
+    date: "First Tuesday each month",
+    time: "8:00 PM ET",
+    city: "Online",
+    type: "Prayer",
+    attendance: "Online",
+    description:
+      "A monthly online prayer gathering connecting churches and households across every U.S. time zone.",
   },
-];
+  {
+    id: "missions-weekend",
+    church: "Grace Community Church",
+    title: "Serve the City Weekend",
+    date: "September 18–19, 2027",
+    time: "Saturday–Sunday",
+    city: "Multiple cities",
+    type: "Outreach",
+    attendance: "In person",
+    description: "Local churches unite for coordinated service projects in communities nationwide.",
+  },
+  {
+    id: "hope-worship",
+    church: "Hope Fellowship Network",
+    title: "Hope Worship Collective",
+    date: "March 12, 2027",
+    time: "7:00 PM PT",
+    city: "Phoenix, AZ",
+    type: "Worship",
+    attendance: "In person + livestream",
+    description:
+      "An evening of worship and prayer with churches from across the Hope Fellowship Network.",
+  },
+  {
+    id: "new-life-family",
+    church: "New Life Church",
+    title: "New Life Family Conference",
+    date: "July 9–10, 2027",
+    time: "Friday–Saturday",
+    city: "Charlotte, NC",
+    type: "Conference",
+    attendance: "In person",
+    description:
+      "Biblical encouragement and practical sessions for parents, marriages, and families.",
+  },
+] as const;
 
-const PLANS = [
-  { title: "Proverbs in 31 Days", detail: "One chapter a day of practical wisdom." },
-  { title: "The Life of Christ", detail: "Matthew to John across 60 days." },
-  { title: "Psalms for Anxious Days", detail: "14 short readings on peace and trust." },
+const EVENT_TYPES = [
+  "All events",
+  "Conference",
+  "Leadership",
+  "Youth",
+  "Prayer",
+  "Outreach",
+  "Worship",
 ];
 
 function EventsPage() {
+  const [church, setChurch] = useState(CHURCHES[0]);
+  const [type, setType] = useState("All events");
+  const [query, setQuery] = useState("");
+  const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
+
+  const events = useMemo(
+    () =>
+      EVENTS.filter((event) => {
+        const matchesChurch = event.church === church;
+        const matchesType = type === "All events" || event.type === type;
+        const matchesQuery = `${event.title} ${event.city} ${event.type}`
+          .toLowerCase()
+          .includes(query.trim().toLowerCase());
+        return matchesChurch && matchesType && matchesQuery;
+      }),
+    [church, query, type],
+  );
+
   return (
-    <AppShell title="Events">
-      <h1 className="text-2xl font-semibold">Events & plans</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Gather, pray and keep a steady rhythm in the Word.
+    <AppShell title="Nationwide events">
+      <section className="rounded-2xl bg-primary p-5 text-primary-foreground shadow-soft sm:p-6">
+        <div className="flex items-center gap-2 text-primary-foreground/75">
+          <Globe2 className="size-4" />
+          <span className="text-xs font-medium uppercase tracking-[0.16em]">
+            Church events directory
+          </span>
+        </div>
+        <h1 className="mt-3 font-display text-2xl font-semibold sm:text-3xl">
+          Gather with your church nationwide
+        </h1>
+        <p className="mt-2 max-w-xl text-sm leading-6 text-primary-foreground/80">
+          Discover national conferences, regional gatherings, and online events from the church
+          network you follow.
+        </p>
+      </section>
+
+      <section className="mt-5 rounded-2xl border border-border bg-card p-4 shadow-soft">
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
+          <label className="grid gap-1.5 text-sm font-medium">
+            Your church network
+            <span className="relative">
+              <Building2 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <select
+                value={church}
+                onChange={(event) => setChurch(event.target.value)}
+                className="h-10 w-full appearance-none rounded-md border border-input bg-background py-2 pl-9 pr-9 text-sm shadow-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                {CHURCHES.map((churchName) => (
+                  <option key={churchName}>{churchName}</option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            </span>
+          </label>
+          <label className="grid gap-1.5 text-sm font-medium">
+            Event type
+            <select
+              value={type}
+              onChange={(event) => setType(event.target.value)}
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              {EVENT_TYPES.map((eventType) => (
+                <option key={eventType}>{eventType}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <label className="relative mt-3 block">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search by event, city, or category"
+            className="pl-9"
+          />
+        </label>
+      </section>
+
+      <div className="mt-6 flex items-baseline justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">Upcoming nationwide events</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {events.length} event{events.length === 1 ? "" : "s"} from {church}
+          </p>
+        </div>
+        <Badge variant="secondary" className="shrink-0 rounded-full">
+          United States
+        </Badge>
+      </div>
+
+      {events.length > 0 ? (
+        <ul className="mt-4 space-y-3">
+          {events.map((event) => {
+            const isExpanded = expandedEvent === event.id;
+            return (
+              <li
+                key={event.id}
+                className="rounded-2xl border border-border bg-card p-4 shadow-soft"
+              >
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                  <div>
+                    <h3 className="text-base font-semibold">{event.title}</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">{event.church}</p>
+                  </div>
+                  <Badge variant="secondary" className="shrink-0 rounded-full">
+                    {event.type}
+                  </Badge>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <CalendarDays className="size-3.5" /> {event.date}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="size-3.5" /> {event.time}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="size-3.5" /> {event.city}
+                  </span>
+                </div>
+                {isExpanded && (
+                  <div className="mt-4 rounded-xl bg-muted/60 p-3 text-sm">
+                    <p className="leading-6 text-muted-foreground">{event.description}</p>
+                    <p className="mt-3 flex items-center gap-1.5 font-medium text-foreground">
+                      {event.attendance.includes("Online") ? (
+                        <Video className="size-4" />
+                      ) : (
+                        <Users className="size-4" />
+                      )}
+                      {event.attendance}
+                    </p>
+                  </div>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4"
+                  onClick={() => setExpandedEvent(isExpanded ? null : event.id)}
+                >
+                  {isExpanded ? "Hide details" : "View details"}
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <div className="mt-4 rounded-2xl border border-dashed border-border p-8 text-center">
+          <p className="font-medium">No events match those filters.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Try another event type or clear your search.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-4"
+            onClick={() => {
+              setType("All events");
+              setQuery("");
+            }}
+          >
+            Clear filters
+          </Button>
+        </div>
+      )}
+
+      <p className="mt-6 text-center text-xs leading-5 text-muted-foreground">
+        Event details are curated in this directory. Connect your church’s event feed or
+        registration portal to publish live availability and registration links.
       </p>
-
-      <ul className="mt-5 space-y-3">
-        {EVENTS.map((e) => (
-          <li key={e.title} className="rounded-2xl border border-border bg-card p-4 shadow-soft">
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-              <h2 className="min-w-0 text-base font-semibold">{e.title}</h2>
-              <Badge variant="secondary" className="shrink-0 rounded-full">
-                {e.tag}
-              </Badge>
-            </div>
-            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <CalendarDays className="size-3.5" /> {e.date}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Clock className="size-3.5" /> {e.time}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <MapPin className="size-3.5" /> {e.place}
-              </span>
-            </div>
-          </li>
-        ))}
-      </ul>
-
-      <h2 className="mt-8 text-lg font-semibold">Reading plans</h2>
-      <ul className="mt-3 grid gap-3 sm:grid-cols-3">
-        {PLANS.map((p) => (
-          <li key={p.title} className="rounded-2xl gradient-dawn p-[1px]">
-            <div className="h-full rounded-2xl bg-card p-4">
-              <p className="font-semibold">{p.title}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{p.detail}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
     </AppShell>
   );
 }
