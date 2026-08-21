@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Scripture Reader</title>
+  <rect width="512" height="512" rx="96" fill="#1f3a32"/>
+  <path fill="#f8f7f2" d="M120 135c0-19 16-35 35-35h82c24 0 46 9 61 25 15-16 37-25 61-25h-2c19 0 35 16 35 35v235c0 14-11 25-25 25h-91c-17 0-33 7-45 19a13 13 0 0 1-19 0c-12-12-28-19-45-19h-91c-14 0-25-11-25-25V135Zm35 2v226h72c19 0 38 5 54 15V154c-12-13-28-19-44-19h-82Zm126 17v224c16-10 35-15 54-15h72V137h-48c-16 0-32 6-44 19Z"/>
+  <path fill="#d7b56d" d="M245 194h22v40h39v22h-39v40h-22v-40h-39v-22h39z"/>
+</svg>
