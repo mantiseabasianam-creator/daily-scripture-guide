@@ -26,6 +26,8 @@ const CHURCH_OPTIONS = [
   "Non-denominational Church",
 ];
 
+const NATION_OPTIONS = ["United States", "Canada", "United Kingdom", "Nigeria", "Australia"];
+
 function AuthPage() {
   const [mode, setMode] = useState<Mode>(() =>
     typeof window !== "undefined" &&
@@ -36,6 +38,7 @@ function AuthPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [church, setChurch] = useState(CHURCH_OPTIONS[0]);
+  const [nation, setNation] = useState(NATION_OPTIONS[0]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -79,7 +82,7 @@ function AuthPage() {
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/profile`,
-            data: { first_name: firstName, last_name: lastName, church },
+            data: { first_name: firstName, last_name: lastName, church, nation },
           },
         });
         if (signUpError) throw signUpError;
@@ -219,6 +222,18 @@ function AuthPage() {
                   >
                     {CHURCH_OPTIONS.map((churchOption) => (
                       <option key={churchOption}>{churchOption}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-1.5 text-sm font-medium">
+                  Nation for church events
+                  <select
+                    value={nation}
+                    onChange={(event) => setNation(event.target.value)}
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    {NATION_OPTIONS.map((nationOption) => (
+                      <option key={nationOption}>{nationOption}</option>
                     ))}
                   </select>
                 </label>
