@@ -1,4 +1,4 @@
-# Daily Scripture Guide
+# Scripture Reader
 
 Build a web app called "Scripture Reader" — a Bible reading app.
 
