@@ -2,7 +2,7 @@ export type Testament = "old" | "new";
 
 export type Book = { name: string; chapters: number; testament: Testament };
 
-export const BOOKS: Book[] = [
+export const BOOKS: Book[] = ([
   ["Genesis", 50], ["Exodus", 40], ["Leviticus", 27], ["Numbers", 36], ["Deuteronomy", 34],
   ["Joshua", 24], ["Judges", 21], ["Ruth", 4], ["1 Samuel", 31], ["2 Samuel", 24],
   ["1 Kings", 22], ["2 Kings", 25], ["1 Chronicles", 29], ["2 Chronicles", 36], ["Ezra", 10],
@@ -11,7 +11,7 @@ export const BOOKS: Book[] = [
   ["Ezekiel", 48], ["Daniel", 12], ["Hosea", 14], ["Joel", 3], ["Amos", 9],
   ["Obadiah", 1], ["Jonah", 4], ["Micah", 7], ["Nahum", 3], ["Habakkuk", 3],
   ["Zephaniah", 3], ["Haggai", 2], ["Zechariah", 14], ["Malachi", 4],
-].map(([name, chapters]) => ({ name: name as string, chapters: chapters as number, testament: "old" as const }))
+] as [string, number][]).map(([name, chapters]): Book => ({ name, chapters, testament: "old" }))
   .concat(
     ([
       ["Matthew", 28], ["Mark", 16], ["Luke", 24], ["John", 21], ["Acts", 28],
@@ -20,7 +20,7 @@ export const BOOKS: Book[] = [
       ["2 Timothy", 4], ["Titus", 3], ["Philemon", 1], ["Hebrews", 13], ["James", 5],
       ["1 Peter", 5], ["2 Peter", 3], ["1 John", 5], ["2 John", 1], ["3 John", 1],
       ["Jude", 1], ["Revelation", 22],
-    ] as [string, number][]).map(([name, chapters]) => ({ name, chapters, testament: "new" as const })),
+    ] as [string, number][]).map(([name, chapters]): Book => ({ name, chapters, testament: "new" })),
   );
 
 export type Translation = { id: string; abbr: string; name: string };
@@ -63,5 +63,5 @@ const VOTD = [
 
 export function verseOfTheDayRef(date = new Date()) {
   const day = Math.floor(date.getTime() / 86_400_000);
-  return VOTD[day % VOTD.length];
+  return VOTD[day % VOTD.length]!;
 }

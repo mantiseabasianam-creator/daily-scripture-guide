@@ -23,10 +23,10 @@ export function VerseRow({
 }: {
   id: string;
   reference: string;
-  verseNumber?: number;
+  verseNumber?: number | undefined;
   text: string;
   translation: string;
-  saved?: SavedVerse;
+  saved?: SavedVerse | undefined;
 }) {
   const { update } = useLibrary();
   const [note, setNote] = useState(saved?.note ?? "");

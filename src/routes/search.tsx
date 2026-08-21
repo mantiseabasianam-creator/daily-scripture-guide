@@ -54,7 +54,7 @@ function resolveQuery(raw: string): string[] {
   const q = raw.trim();
   const match = REFERENCE_RE.exec(q);
   if (match) {
-    const name = match[1].replace(/\s+/g, " ").trim().toLowerCase();
+    const name = match[1]!.replace(/\s+/g, " ").trim().toLowerCase();
     const book = BOOKS.find(
       (b) => b.name.toLowerCase() === name || b.name.toLowerCase().startsWith(name),
     );
@@ -62,7 +62,7 @@ function resolveQuery(raw: string): string[] {
   }
   const key = q.toLowerCase();
   const topic = Object.keys(KEYWORD_INDEX).find((k) => k.includes(key) || key.includes(k));
-  return topic ? KEYWORD_INDEX[topic] : [];
+  return topic ? (KEYWORD_INDEX[topic] ?? []) : [];
 }
 
 function SearchPage() {
