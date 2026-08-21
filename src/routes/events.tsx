@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Building2,
   CalendarDays,
@@ -15,6 +15,7 @@ import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/events")({
   head: () => ({
@@ -35,12 +36,12 @@ export const Route = createFileRoute("/events")({
   component: EventsPage,
 });
 
-const CHURCHES = ["Grace Community Church", "Hope Fellowship Network", "New Life Church"];
+const CHURCHES = ["Presbyterian Church (USA)", "Catholic Church", "Apostolic Church"];
 
 const EVENTS = [
   {
     id: "national-gathering",
-    church: "Grace Community Church",
+    church: "Presbyterian Church (USA)",
     title: "National Gathering 2027",
     date: "April 17–19, 2027",
     time: "Friday–Sunday",
@@ -52,7 +53,7 @@ const EVENTS = [
   },
   {
     id: "women-lead",
-    church: "Grace Community Church",
+    church: "Presbyterian Church (USA)",
     title: "Flourish Women’s Leadership Summit",
     date: "May 8–9, 2027",
     time: "9:00 AM–5:00 PM CT",
@@ -64,7 +65,7 @@ const EVENTS = [
   },
   {
     id: "youth-awake",
-    church: "Grace Community Church",
+    church: "Presbyterian Church (USA)",
     title: "Awake Youth Conference",
     date: "June 24–26, 2027",
     time: "Thursday–Saturday",
@@ -76,7 +77,7 @@ const EVENTS = [
   },
   {
     id: "prayer-online",
-    church: "Grace Community Church",
+    church: "Presbyterian Church (USA)",
     title: "National Night of Prayer",
     date: "First Tuesday each month",
     time: "8:00 PM ET",
@@ -88,7 +89,7 @@ const EVENTS = [
   },
   {
     id: "missions-weekend",
-    church: "Grace Community Church",
+    church: "Presbyterian Church (USA)",
     title: "Serve the City Weekend",
     date: "September 18–19, 2027",
     time: "Saturday–Sunday",
@@ -99,7 +100,7 @@ const EVENTS = [
   },
   {
     id: "hope-worship",
-    church: "Hope Fellowship Network",
+    church: "Catholic Church",
     title: "Hope Worship Collective",
     date: "March 12, 2027",
     time: "7:00 PM PT",
@@ -111,7 +112,7 @@ const EVENTS = [
   },
   {
     id: "new-life-family",
-    church: "New Life Church",
+    church: "Apostolic Church",
     title: "New Life Family Conference",
     date: "July 9–10, 2027",
     time: "Friday–Saturday",
@@ -138,6 +139,13 @@ function EventsPage() {
   const [type, setType] = useState("All events");
   const [query, setQuery] = useState("");
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
+
+  useEffect(() => {
+    void supabase.auth.getUser().then(({ data }) => {
+      const savedChurch = data.user?.user_metadata.church;
+      if (typeof savedChurch === "string" && CHURCHES.includes(savedChurch)) setChurch(savedChurch);
+    });
+  }, []);
 
   const events = useMemo(
     () =>
