@@ -1,10 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Bookmark, Highlighter, StickyNote, Trash2 } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { Bookmark, Highlighter, LogIn, LogOut, StickyNote, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useLibrary, type SavedVerse } from "@/lib/library";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -27,9 +29,23 @@ export const Route = createFileRoute("/profile")({
 
 function ProfilePage() {
   const { entries, remove } = useLibrary();
+  const [email, setEmail] = useState<string | null>(null);
   const bookmarks = entries.filter((e) => e.bookmarked);
   const highlights = entries.filter((e) => e.highlight);
   const notes = entries.filter((e) => e.note);
+
+  useEffect(() => {
+    void supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setEmail(session?.user.email ?? null);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setEmail(null);
+  };
 
   return (
     <AppShell title="Profile">
@@ -40,14 +56,46 @@ function ProfilePage() {
               SR
             </span>
             <div className="min-w-0">
-              <p className="truncate text-base font-semibold">My library</p>
+              <p className="truncate text-base font-semibold">
+                {email ? "My library" : "Your library"}
+              </p>
               <p className="truncate text-xs text-muted-foreground">
-                {entries.length} saved {entries.length === 1 ? "verse" : "verses"} on this device
+                {email ||
+                  `${entries.length} saved ${entries.length === 1 ? "verse" : "verses"} on this device`}
               </p>
             </div>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-1">
+            {email ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full"
+                onClick={() => void signOut()}
+                aria-label="Sign out"
+              >
+                <LogOut className="size-4" />
+              </Button>
+            ) : (
+              <Link
+                to="/auth"
+                aria-label="Sign in"
+                className="grid size-9 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <LogIn className="size-4" />
+              </Link>
+            )}
+            <ThemeToggle />
+          </div>
         </div>
+        {!email && (
+          <Link
+            to="/auth"
+            className="mt-4 flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Sign in to sync your library
+          </Link>
+        )}
         <div className="mt-4 grid grid-cols-3 gap-2 text-center">
           <Stat label="Bookmarks" value={bookmarks.length} />
           <Stat label="Highlights" value={highlights.length} />
@@ -120,7 +168,9 @@ function List({
           </div>
           <p className="scripture-body mt-1">{e.text.trim()}</p>
           {e.note ? (
-            <p className="mt-2 rounded-xl bg-muted/70 p-3 text-sm text-muted-foreground">{e.note}</p>
+            <p className="mt-2 rounded-xl bg-muted/70 p-3 text-sm text-muted-foreground">
+              {e.note}
+            </p>
           ) : null}
         </li>
       ))}

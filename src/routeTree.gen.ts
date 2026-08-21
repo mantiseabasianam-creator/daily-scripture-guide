@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as EventsRouteImport } from './routes/events'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ReadRouteImport } from './routes/read'
@@ -18,6 +19,11 @@ import { Route as SearchRouteImport } from './routes/search'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EventsRoute = EventsRouteImport.update({
@@ -43,6 +49,7 @@ const SearchRoute = SearchRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/events': typeof EventsRoute
   '/profile': typeof ProfileRoute
   '/read': typeof ReadRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/events': typeof EventsRoute
   '/profile': typeof ProfileRoute
   '/read': typeof ReadRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/events': typeof EventsRoute
   '/profile': typeof ProfileRoute
   '/read': typeof ReadRoute
@@ -65,14 +74,15 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/events' | '/profile' | '/read' | '/search'
+  fullPaths: '/' | '/auth' | '/events' | '/profile' | '/read' | '/search'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/events' | '/profile' | '/read' | '/search'
-  id: '__root__' | '/' | '/events' | '/profile' | '/read' | '/search'
+  to: '/' | '/auth' | '/events' | '/profile' | '/read' | '/search'
+  id: '__root__' | '/' | '/auth' | '/events' | '/profile' | '/read' | '/search'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
   EventsRoute: typeof EventsRoute
   ProfileRoute: typeof ProfileRoute
   ReadRoute: typeof ReadRoute
@@ -86,6 +96,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/events': {
@@ -121,6 +138,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
   EventsRoute: EventsRoute,
   ProfileRoute: ProfileRoute,
   ReadRoute: ReadRoute,
