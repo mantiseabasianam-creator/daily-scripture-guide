@@ -4,7 +4,17 @@ import { Apple, ArrowLeft, BookOpen, Chrome, Eye, EyeOff, KeyRound, Mail } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
+import {
+  emailSchema,
+  fieldErrors,
+  passwordSchema,
+  passwordStrength,
+  signInSchema,
+  signUpSchema,
+} from "@/lib/auth";
 import { CHURCH_TRADITIONS, getChurchName, NATIONS } from "@/lib/church-directory";
+
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
@@ -31,31 +41,60 @@ function AuthPage() {
   const [nation, setNation] = useState<string>(NATIONS[0]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const strength = passwordStrength(password);
 
   const setAuthMode = (nextMode: Mode) => {
     setMode(nextMode);
     setMessage("");
     setError("");
+    setErrors({});
     setPassword("");
+    setConfirmPassword("");
   };
 
   const handleOAuth = async (provider: "google" | "apple") => {
     setError("");
-    const { error: oauthError } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo: `${window.location.origin}/profile` },
+    const result = await lovable.auth.signInWithOAuth(provider, {
+      redirect_uri: window.location.origin,
     });
-    if (oauthError) setError(oauthError.message);
+    if (result.error) {
+      setError(result.error.message);
+      return;
+    }
+    if (result.redirected) return;
+    window.location.assign("/profile");
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
     setMessage("");
+    setErrors({});
+
+    const validation =
+      mode === "sign-up"
+        ? signUpSchema.safeParse({ firstName, lastName, email, password, confirmPassword })
+        : mode === "sign-in"
+          ? signInSchema.safeParse({ email, password })
+          : mode === "forgot-password"
+            ? emailSchema.safeParse(email)
+            : passwordSchema.safeParse(password);
+
+    if (!validation.success) {
+      if (mode === "forgot-password") setErrors({ email: validation.error.issues[0]!.message });
+      else if (mode === "reset-password")
+        setErrors({ password: validation.error.issues[0]!.message });
+      else setErrors(fieldErrors(validation.error));
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -111,6 +150,7 @@ function AuthPage() {
       setIsSubmitting(false);
     }
   };
+
 
   const copy = {
     "sign-in": {
@@ -180,8 +220,12 @@ function AuthPage() {
                     onChange={(event) => setEmail(event.target.value)}
                     className="pl-9"
                     placeholder="you@example.com"
+                    aria-invalid={Boolean(errors['email'])}
                   />
                 </span>
+                {errors['email'] && (
+                  <span className="text-xs font-normal text-destructive">{errors['email']}</span>
+                )}
               </label>
             )}
 
@@ -196,7 +240,13 @@ function AuthPage() {
                       value={firstName}
                       onChange={(event) => setFirstName(event.target.value)}
                       placeholder="First name"
+                      aria-invalid={Boolean(errors['firstName'])}
                     />
+                    {errors['firstName'] && (
+                      <span className="text-xs font-normal text-destructive">
+                        {errors['firstName']}
+                      </span>
+                    )}
                   </label>
                   <label className="grid gap-1.5 text-sm font-medium">
                     Last name
@@ -206,9 +256,16 @@ function AuthPage() {
                       value={lastName}
                       onChange={(event) => setLastName(event.target.value)}
                       placeholder="Last name"
+                      aria-invalid={Boolean(errors['lastName'])}
                     />
+                    {errors['lastName'] && (
+                      <span className="text-xs font-normal text-destructive">
+                        {errors['lastName']}
+                      </span>
+                    )}
                   </label>
                 </div>
+
                 <label className="grid gap-1.5 text-sm font-medium">
                   Your church tradition
                   <select
@@ -248,11 +305,11 @@ function AuthPage() {
                     type={showPassword ? "text" : "password"}
                     autoComplete={mode === "sign-in" ? "current-password" : "new-password"}
                     required
-                    minLength={6}
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     className="pl-9 pr-10"
-                    placeholder="At least 6 characters"
+                    placeholder="At least 8 characters"
+                    aria-invalid={Boolean(errors['password'])}
                   />
                   <button
                     type="button"
@@ -263,8 +320,52 @@ function AuthPage() {
                     {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </button>
                 </span>
+                {mode !== "sign-in" && password.length > 0 && (
+                  <span className="flex items-center gap-2">
+                    <span className="flex h-1.5 flex-1 gap-1">
+                      {[0, 1, 2, 3, 4].map((i) => (
+                        <span
+                          key={i}
+                          className={`h-full flex-1 rounded-full ${
+                            i < strength.score ? "bg-primary" : "bg-muted"
+                          }`}
+                        />
+                      ))}
+                    </span>
+                    <span className="text-xs font-normal text-muted-foreground">
+                      {strength.label}
+                    </span>
+                  </span>
+                )}
+                {errors['password'] && (
+                  <span className="text-xs font-normal text-destructive">{errors['password']}</span>
+                )}
               </label>
             )}
+            {mode === "sign-up" && (
+              <label className="grid gap-1.5 text-sm font-medium">
+                Confirm password
+                <span className="relative">
+                  <KeyRound className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    required
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    className="pl-9"
+                    placeholder="Re-enter your password"
+                    aria-invalid={Boolean(errors['confirmPassword'])}
+                  />
+                </span>
+                {errors['confirmPassword'] && (
+                  <span className="text-xs font-normal text-destructive">
+                    {errors['confirmPassword']}
+                  </span>
+                )}
+              </label>
+            )}
+
             {error && (
               <p role="alert" className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">
                 {error}
