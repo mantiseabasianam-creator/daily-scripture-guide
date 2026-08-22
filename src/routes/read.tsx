@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, WifiOff } from "lucide-react";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { VerseRow } from "@/components/verse-row";
@@ -149,6 +149,11 @@ function ReadPage() {
         <p className="mt-1 font-sans text-xs text-muted-foreground">
           {data?.translation_name ?? abbr}
         </p>
+        {data?.fromOfflineCache && (
+          <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground">
+            <WifiOff className="size-3.5" /> Offline copy saved on this device
+          </p>
+        )}
 
         {isLoading ? (
           <div className="mt-6 space-y-3">
@@ -158,7 +163,7 @@ function ReadPage() {
           </div>
         ) : isError ? (
           <p className="mt-6 text-sm text-destructive">
-            This chapter isn’t available in {abbr}. Try another translation.
+            This chapter isn’t available in {abbr}. Connect to the internet once to save it for offline reading.
           </p>
         ) : (
           <div className="mt-4 space-y-1">

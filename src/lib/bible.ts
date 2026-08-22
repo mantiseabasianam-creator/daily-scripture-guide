@@ -39,16 +39,61 @@ export const TRANSLATIONS: Translation[] = [
 ];
 
 export type Verse = { book_name: string; chapter: number; verse: number; text: string };
-export type Passage = { reference: string; verses: Verse[]; translation_name: string };
+export type Passage = {
+  reference: string;
+  verses: Verse[];
+  translation_name: string;
+  fromOfflineCache?: boolean;
+};
 
 const API = "https://bible-api.com";
+const OFFLINE_CACHE_KEY = "scripture-reader-offline-passages-v1";
+const MAX_OFFLINE_PASSAGES = 80;
+
+type CachedPassages = Record<string, Passage>;
+
+function passageCacheKey(ref: string, translation: string) {
+  return `${translation}:${ref.trim().toLowerCase()}`;
+}
+
+function getCachedPassages(): CachedPassages {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(localStorage.getItem(OFFLINE_CACHE_KEY) ?? "{}") as CachedPassages;
+  } catch {
+    return {};
+  }
+}
+
+function savePassageForOffline(ref: string, translation: string, passage: Passage) {
+  if (typeof window === "undefined") return;
+  try {
+    const cache = getCachedPassages();
+    const key = passageCacheKey(ref, translation);
+    const entries = Object.entries(cache).filter(([cachedKey]) => cachedKey !== key);
+    const recentEntries = entries.slice(-(MAX_OFFLINE_PASSAGES - 1));
+    localStorage.setItem(
+      OFFLINE_CACHE_KEY,
+      JSON.stringify({ ...Object.fromEntries(recentEntries), [key]: passage }),
+    );
+  } catch {
+    // Browsers may deny storage in private mode or when space is exhausted.
+  }
+}
 
 export async function fetchPassage(ref: string, translation: string): Promise<Passage> {
-  const res = await fetch(`${API}/${encodeURIComponent(ref)}?translation=${translation}`);
-  if (!res.ok) throw new Error("Passage not found");
-  const data = (await res.json()) as Passage;
-  if (!data.verses?.length) throw new Error("Passage not found");
-  return data;
+  try {
+    const res = await fetch(`${API}/${encodeURIComponent(ref)}?translation=${translation}`);
+    if (!res.ok) throw new Error("Passage not found");
+    const data = (await res.json()) as Passage;
+    if (!data.verses?.length) throw new Error("Passage not found");
+    savePassageForOffline(ref, translation, data);
+    return data;
+  } catch (error) {
+    const cachedPassage = getCachedPassages()[passageCacheKey(ref, translation)];
+    if (cachedPassage?.verses?.length) return { ...cachedPassage, fromOfflineCache: true };
+    throw error;
+  }
 }
 
 export function verseId(v: { book_name: string; chapter: number; verse: number }) {
