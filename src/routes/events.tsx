@@ -132,6 +132,116 @@ const EVENTS = [
   },
 ] as const;
 
+const COUNTRY_EVENT_DETAILS: Record<string, { city: string; date: string; time: string }> = {
+  Canada: { city: "Toronto, ON", date: "September 11–12, 2027", time: "Saturday–Sunday" },
+  "United Kingdom": { city: "London, UK", date: "October 2–3, 2027", time: "Saturday–Sunday" },
+  Nigeria: { city: "Lagos, Nigeria", date: "October 23–24, 2027", time: "Saturday–Sunday" },
+  Australia: { city: "Sydney, NSW", date: "November 6–7, 2027", time: "Saturday–Sunday" },
+  "United States": { city: "Multiple cities", date: "August 14–15, 2027", time: "Saturday–Sunday" },
+};
+
+const COUNTRY_EVENTS = NATIONS.flatMap((nation) => {
+  const details = COUNTRY_EVENT_DETAILS[nation];
+  return CHURCHES.filter((church) => !(nation === "United States" && church === "Presbyterian")).map(
+    (church) => ({
+      id: `${nation.toLowerCase().replaceAll(" ", "-")}-${church.toLowerCase().replaceAll(" ", "-")}`,
+      church,
+      nation,
+      title: `${church} National Family Gathering`,
+      date: details.date,
+      time: details.time,
+      city: details.city,
+      type: "Conference",
+      attendance: "In person + livestream",
+      description:
+        "A national gathering for worship, Scripture-centered teaching, fellowship, and practical encouragement for local churches.",
+    }),
+  );
+});
+
+const NIGERIA_EVENTS = [
+  {
+    id: "nigeria-national-prayer",
+    church: "Non-denominational",
+    nation: "Nigeria",
+    title: "Nigeria National Prayer Gathering",
+    date: "First Saturday each month",
+    time: "6:00 PM WAT",
+    city: "Online + Lagos",
+    type: "Prayer",
+    attendance: "Online + in person",
+    description:
+      "A monthly prayer gathering for believers across Nigeria, with worship, intercession, and Scripture reading.",
+  },
+  {
+    id: "nigeria-youth-awakening",
+    church: "Apostolic",
+    nation: "Nigeria",
+    title: "West Africa Youth Awakening",
+    date: "July 16–18, 2027",
+    time: "Friday–Sunday",
+    city: "Ibadan, Oyo",
+    type: "Youth",
+    attendance: "In person + livestream",
+    description:
+      "A youth weekend focused on worship, discipleship, prayer, and serving local communities across West Africa.",
+  },
+  {
+    id: "nigeria-women-conference",
+    church: "Methodist",
+    nation: "Nigeria",
+    title: "Women of Faith Conference Nigeria",
+    date: "August 20–21, 2027",
+    time: "Friday–Saturday",
+    city: "Abuja, FCT",
+    type: "Leadership",
+    attendance: "In person + livestream",
+    description:
+      "Teaching, prayer, and leadership conversations for women serving their churches, families, and communities.",
+  },
+  {
+    id: "nigeria-baptist-missions",
+    church: "Baptist",
+    nation: "Nigeria",
+    title: "Baptist Missions and Service Week",
+    date: "September 6–12, 2027",
+    time: "All week",
+    city: "Multiple cities",
+    type: "Outreach",
+    attendance: "In person",
+    description:
+      "Churches partner in practical service, evangelism, and community care projects across Nigeria.",
+  },
+  {
+    id: "nigeria-catholic-family",
+    church: "Catholic",
+    nation: "Nigeria",
+    title: "Catholic Family and Life Congress",
+    date: "October 8–10, 2027",
+    time: "Friday–Sunday",
+    city: "Enugu, Enugu",
+    type: "Conference",
+    attendance: "In person",
+    description:
+      "A family-focused congress with Mass, Scripture reflection, pastoral teaching, and community fellowship.",
+  },
+  {
+    id: "nigeria-presbyterian-worship",
+    church: "Presbyterian",
+    nation: "Nigeria",
+    title: "Nigeria Presbyterian Worship Night",
+    date: "November 13, 2027",
+    time: "5:00 PM WAT",
+    city: "Port Harcourt, Rivers",
+    type: "Worship",
+    attendance: "In person + livestream",
+    description:
+      "An evening of congregational worship, prayer, and Scripture-led ministry for Presbyterian congregations.",
+  },
+] as const;
+
+const ALL_EVENTS = [...EVENTS, ...COUNTRY_EVENTS, ...NIGERIA_EVENTS];
+
 const EVENT_TYPES = [
   "All events",
   "Conference",
@@ -174,7 +284,7 @@ function EventsPage() {
 
   const events = useMemo(
     () =>
-      EVENTS.filter((event) => {
+      ALL_EVENTS.filter((event) => {
         const matchesChurch = event.church === church;
         const matchesNation = event.nation === nation;
         const matchesType = type === "All events" || event.type === type;
