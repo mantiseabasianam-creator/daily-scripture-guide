@@ -288,11 +288,11 @@ function AuthPage() {
                     type={showPassword ? "text" : "password"}
                     autoComplete={mode === "sign-in" ? "current-password" : "new-password"}
                     required
-                    minLength={6}
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     className="pl-9 pr-10"
-                    placeholder="At least 6 characters"
+                    placeholder="At least 8 characters"
+                    aria-invalid={Boolean(errors['password'])}
                   />
                   <button
                     type="button"
@@ -303,8 +303,52 @@ function AuthPage() {
                     {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </button>
                 </span>
+                {mode !== "sign-in" && password.length > 0 && (
+                  <span className="flex items-center gap-2">
+                    <span className="flex h-1.5 flex-1 gap-1">
+                      {[0, 1, 2, 3, 4].map((i) => (
+                        <span
+                          key={i}
+                          className={`h-full flex-1 rounded-full ${
+                            i < strength.score ? "bg-primary" : "bg-muted"
+                          }`}
+                        />
+                      ))}
+                    </span>
+                    <span className="text-xs font-normal text-muted-foreground">
+                      {strength.label}
+                    </span>
+                  </span>
+                )}
+                {errors['password'] && (
+                  <span className="text-xs font-normal text-destructive">{errors['password']}</span>
+                )}
               </label>
             )}
+            {mode === "sign-up" && (
+              <label className="grid gap-1.5 text-sm font-medium">
+                Confirm password
+                <span className="relative">
+                  <KeyRound className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    required
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    className="pl-9"
+                    placeholder="Re-enter your password"
+                    aria-invalid={Boolean(errors['confirmPassword'])}
+                  />
+                </span>
+                {errors['confirmPassword'] && (
+                  <span className="text-xs font-normal text-destructive">
+                    {errors['confirmPassword']}
+                  </span>
+                )}
+              </label>
+            )}
+
             {error && (
               <p role="alert" className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">
                 {error}
