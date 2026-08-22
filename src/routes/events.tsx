@@ -151,10 +151,12 @@ function EventsPage() {
 
   useEffect(() => {
     void supabase.auth.getUser().then(({ data }) => {
-      const savedChurch = data.user?.user_metadata.church;
-      const savedNation = data.user?.user_metadata.nation;
-      if (typeof savedChurch === "string" && CHURCHES.includes(savedChurch)) setChurch(savedChurch);
-      if (typeof savedNation === "string" && NATIONS.includes(savedNation)) setNation(savedNation);
+      const savedChurch = data.user?.user_metadata['church'];
+      const savedNation = data.user?.user_metadata['nation'];
+      if (typeof savedChurch === "string" && (CHURCHES as readonly string[]).includes(savedChurch))
+        setChurch(savedChurch);
+      if (typeof savedNation === "string" && (NATIONS as readonly string[]).includes(savedNation))
+        setNation(savedNation);
     });
   }, []);
 
