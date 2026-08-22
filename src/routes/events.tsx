@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { CHURCH_TRADITIONS, getChurchName, NATIONS } from "@/lib/church-directory";
 
 export const Route = createFileRoute("/events")({
   head: () => ({
@@ -36,20 +37,12 @@ export const Route = createFileRoute("/events")({
   component: EventsPage,
 });
 
-const CHURCHES = [
-  "Presbyterian Church (USA)",
-  "Catholic Church",
-  "Apostolic Church",
-  "Baptist Church",
-  "Methodist Church",
-  "Non-denominational Church",
-];
-const NATIONS = ["United States", "Canada", "United Kingdom", "Nigeria", "Australia"];
+const CHURCHES = CHURCH_TRADITIONS;
 
 const EVENTS = [
   {
     id: "national-gathering",
-    church: "Presbyterian Church (USA)",
+    church: "Presbyterian",
     nation: "United States",
     title: "National Gathering 2027",
     date: "April 17–19, 2027",
@@ -62,7 +55,7 @@ const EVENTS = [
   },
   {
     id: "women-lead",
-    church: "Presbyterian Church (USA)",
+    church: "Presbyterian",
     nation: "United States",
     title: "Flourish Women’s Leadership Summit",
     date: "May 8–9, 2027",
@@ -75,7 +68,7 @@ const EVENTS = [
   },
   {
     id: "youth-awake",
-    church: "Presbyterian Church (USA)",
+    church: "Presbyterian",
     nation: "United States",
     title: "Awake Youth Conference",
     date: "June 24–26, 2027",
@@ -88,7 +81,7 @@ const EVENTS = [
   },
   {
     id: "prayer-online",
-    church: "Presbyterian Church (USA)",
+    church: "Presbyterian",
     nation: "United States",
     title: "National Night of Prayer",
     date: "First Tuesday each month",
@@ -101,7 +94,7 @@ const EVENTS = [
   },
   {
     id: "missions-weekend",
-    church: "Presbyterian Church (USA)",
+    church: "Presbyterian",
     nation: "United States",
     title: "Serve the City Weekend",
     date: "September 18–19, 2027",
@@ -113,7 +106,7 @@ const EVENTS = [
   },
   {
     id: "hope-worship",
-    church: "Catholic Church",
+    church: "Catholic",
     nation: "United States",
     title: "Hope Worship Collective",
     date: "March 12, 2027",
@@ -126,7 +119,7 @@ const EVENTS = [
   },
   {
     id: "new-life-family",
-    church: "Apostolic Church",
+    church: "Apostolic",
     nation: "United States",
     title: "New Life Family Conference",
     date: "July 9–10, 2027",
@@ -150,8 +143,8 @@ const EVENT_TYPES = [
 ];
 
 function EventsPage() {
-  const [church, setChurch] = useState(CHURCHES[0]);
-  const [nation, setNation] = useState(NATIONS[0]);
+  const [church, setChurch] = useState<string>(CHURCHES[0]);
+  const [nation, setNation] = useState<string>(NATIONS[0]);
   const [type, setType] = useState("All events");
   const [query, setQuery] = useState("");
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
@@ -167,12 +160,16 @@ function EventsPage() {
 
   const updateChurch = (nextChurch: string) => {
     setChurch(nextChurch);
-    void supabase.auth.updateUser({ data: { church: nextChurch } });
+    void supabase.auth.updateUser({
+      data: { church: nextChurch, church_name: getChurchName(nation, nextChurch) },
+    });
   };
 
   const updateNation = (nextNation: string) => {
     setNation(nextNation);
-    void supabase.auth.updateUser({ data: { nation: nextNation } });
+    void supabase.auth.updateUser({
+      data: { nation: nextNation, church_name: getChurchName(nextNation, church) },
+    });
   };
 
   const events = useMemo(
@@ -265,7 +262,8 @@ function EventsPage() {
         <div>
           <h2 className="text-lg font-semibold">Upcoming nationwide events</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {events.length} event{events.length === 1 ? "" : "s"} from {church} in {nation}
+            {events.length} event{events.length === 1 ? "" : "s"} from{" "}
+            {getChurchName(nation, church)}
           </p>
         </div>
         <Badge variant="secondary" className="shrink-0 rounded-full">
@@ -285,7 +283,9 @@ function EventsPage() {
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                   <div>
                     <h3 className="text-base font-semibold">{event.title}</h3>
-                    <p className="mt-1 text-xs text-muted-foreground">{event.church}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {getChurchName(event.nation, event.church)}
+                    </p>
                   </div>
                   <Badge variant="secondary" className="shrink-0 rounded-full">
                     {event.type}

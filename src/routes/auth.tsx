@@ -4,6 +4,7 @@ import { Apple, ArrowLeft, BookOpen, Chrome, Eye, EyeOff, KeyRound, Mail } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { CHURCH_TRADITIONS, getChurchName, NATIONS } from "@/lib/church-directory";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
@@ -17,17 +18,6 @@ export const Route = createFileRoute("/auth")({
 
 type Mode = "sign-in" | "sign-up" | "forgot-password" | "reset-password";
 
-const CHURCH_OPTIONS = [
-  "Presbyterian Church (USA)",
-  "Catholic Church",
-  "Apostolic Church",
-  "Baptist Church",
-  "Methodist Church",
-  "Non-denominational Church",
-];
-
-const NATION_OPTIONS = ["United States", "Canada", "United Kingdom", "Nigeria", "Australia"];
-
 function AuthPage() {
   const [mode, setMode] = useState<Mode>(() =>
     typeof window !== "undefined" &&
@@ -37,8 +27,8 @@ function AuthPage() {
   );
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [church, setChurch] = useState(CHURCH_OPTIONS[0]);
-  const [nation, setNation] = useState(NATION_OPTIONS[0]);
+  const [church, setChurch] = useState<string>(CHURCH_TRADITIONS[0]);
+  const [nation, setNation] = useState<string>(NATIONS[0]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -82,7 +72,13 @@ function AuthPage() {
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/profile`,
-            data: { first_name: firstName, last_name: lastName, church, nation },
+            data: {
+              first_name: firstName,
+              last_name: lastName,
+              church,
+              nation,
+              church_name: getChurchName(nation, church),
+            },
           },
         });
         if (signUpError) throw signUpError;
@@ -220,7 +216,7 @@ function AuthPage() {
                     onChange={(event) => setChurch(event.target.value)}
                     className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring"
                   >
-                    {CHURCH_OPTIONS.map((churchOption) => (
+                    {CHURCH_TRADITIONS.map((churchOption) => (
                       <option key={churchOption}>{churchOption}</option>
                     ))}
                   </select>
@@ -232,11 +228,15 @@ function AuthPage() {
                     onChange={(event) => setNation(event.target.value)}
                     className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring"
                   >
-                    {NATION_OPTIONS.map((nationOption) => (
+                    {NATIONS.map((nationOption) => (
                       <option key={nationOption}>{nationOption}</option>
                     ))}
                   </select>
                 </label>
+                <p className="rounded-xl bg-primary/10 p-3 text-sm text-primary">
+                  Your events will be matched with{" "}
+                  <span className="font-semibold">{getChurchName(nation, church)}</span>.
+                </p>
               </>
             )}
             {needsPassword && (
