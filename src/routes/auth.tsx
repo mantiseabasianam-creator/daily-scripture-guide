@@ -220,8 +220,12 @@ function AuthPage() {
                     onChange={(event) => setEmail(event.target.value)}
                     className="pl-9"
                     placeholder="you@example.com"
+                    aria-invalid={Boolean(errors['email'])}
                   />
                 </span>
+                {errors['email'] && (
+                  <span className="text-xs font-normal text-destructive">{errors['email']}</span>
+                )}
               </label>
             )}
 
@@ -236,7 +240,13 @@ function AuthPage() {
                       value={firstName}
                       onChange={(event) => setFirstName(event.target.value)}
                       placeholder="First name"
+                      aria-invalid={Boolean(errors['firstName'])}
                     />
+                    {errors['firstName'] && (
+                      <span className="text-xs font-normal text-destructive">
+                        {errors['firstName']}
+                      </span>
+                    )}
                   </label>
                   <label className="grid gap-1.5 text-sm font-medium">
                     Last name
@@ -246,9 +256,16 @@ function AuthPage() {
                       value={lastName}
                       onChange={(event) => setLastName(event.target.value)}
                       placeholder="Last name"
+                      aria-invalid={Boolean(errors['lastName'])}
                     />
+                    {errors['lastName'] && (
+                      <span className="text-xs font-normal text-destructive">
+                        {errors['lastName']}
+                      </span>
+                    )}
                   </label>
                 </div>
+
                 <label className="grid gap-1.5 text-sm font-medium">
                   Your church tradition
                   <select
