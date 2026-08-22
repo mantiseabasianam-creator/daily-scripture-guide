@@ -41,31 +41,60 @@ function AuthPage() {
   const [nation, setNation] = useState<string>(NATIONS[0]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const strength = passwordStrength(password);
 
   const setAuthMode = (nextMode: Mode) => {
     setMode(nextMode);
     setMessage("");
     setError("");
+    setErrors({});
     setPassword("");
+    setConfirmPassword("");
   };
 
   const handleOAuth = async (provider: "google" | "apple") => {
     setError("");
-    const { error: oauthError } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo: `${window.location.origin}/profile` },
+    const result = await lovable.auth.signInWithOAuth(provider, {
+      redirect_uri: window.location.origin,
     });
-    if (oauthError) setError(oauthError.message);
+    if (result.error) {
+      setError(result.error.message);
+      return;
+    }
+    if (result.redirected) return;
+    window.location.assign("/profile");
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
     setMessage("");
+    setErrors({});
+
+    const validation =
+      mode === "sign-up"
+        ? signUpSchema.safeParse({ firstName, lastName, email, password, confirmPassword })
+        : mode === "sign-in"
+          ? signInSchema.safeParse({ email, password })
+          : mode === "forgot-password"
+            ? emailSchema.safeParse(email)
+            : passwordSchema.safeParse(password);
+
+    if (!validation.success) {
+      if (mode === "forgot-password") setErrors({ email: validation.error.issues[0]!.message });
+      else if (mode === "reset-password")
+        setErrors({ password: validation.error.issues[0]!.message });
+      else setErrors(fieldErrors(validation.error));
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -121,6 +150,7 @@ function AuthPage() {
       setIsSubmitting(false);
     }
   };
+
 
   const copy = {
     "sign-in": {
