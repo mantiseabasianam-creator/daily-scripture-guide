@@ -4,7 +4,17 @@ import { Apple, ArrowLeft, BookOpen, Chrome, Eye, EyeOff, KeyRound, Mail } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
+import {
+  emailSchema,
+  fieldErrors,
+  passwordSchema,
+  passwordStrength,
+  signInSchema,
+  signUpSchema,
+} from "@/lib/auth";
 import { CHURCH_TRADITIONS, getChurchName, NATIONS } from "@/lib/church-directory";
+
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
