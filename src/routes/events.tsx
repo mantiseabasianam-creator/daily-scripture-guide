@@ -146,7 +146,11 @@ const COUNTRY_EVENT_DETAILS: Record<string, { city: string; date: string; time: 
 };
 
 const COUNTRY_EVENTS = NATIONS.flatMap((nation) => {
-  const details = COUNTRY_EVENT_DETAILS[nation];
+  const details = COUNTRY_EVENT_DETAILS[nation] ?? {
+    city: "Multiple cities",
+    date: "August 14–15, 2027",
+    time: "Saturday–Sunday",
+  };
   return CHURCHES.filter((church) => !(nation === "United States" && church === "Presbyterian")).map(
     (church) => ({
       id: `${nation.toLowerCase().replaceAll(" ", "-")}-${church.toLowerCase().replaceAll(" ", "-")}`,
