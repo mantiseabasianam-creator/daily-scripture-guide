@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
+  Bell,
+  BellRing,
   Building2,
   CalendarDays,
   ChevronDown,
@@ -16,7 +18,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { toast } from "sonner";
 import { CHURCH_TRADITIONS, getChurchName, NATIONS } from "@/lib/church-directory";
+import { LEAD_OPTIONS, leadLabel, useReminders } from "@/lib/reminders";
 
 export const Route = createFileRoute("/events")({
   head: () => ({
@@ -141,7 +146,11 @@ const COUNTRY_EVENT_DETAILS: Record<string, { city: string; date: string; time: 
 };
 
 const COUNTRY_EVENTS = NATIONS.flatMap((nation) => {
-  const details = COUNTRY_EVENT_DETAILS[nation];
+  const details = COUNTRY_EVENT_DETAILS[nation] ?? {
+    city: "Multiple cities",
+    date: "August 14–15, 2027",
+    time: "Saturday–Sunday",
+  };
   return CHURCHES.filter((church) => !(nation === "United States" && church === "Presbyterian")).map(
     (church) => ({
       id: `${nation.toLowerCase().replaceAll(" ", "-")}-${church.toLowerCase().replaceAll(" ", "-")}`,
@@ -258,6 +267,7 @@ function EventsPage() {
   const [type, setType] = useState("All events");
   const [query, setQuery] = useState("");
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
+  const { reminders, userId, setReminder, cancelReminder } = useReminders();
 
   useEffect(() => {
     void supabase.auth.getUser().then(({ data }) => {
@@ -427,14 +437,22 @@ function EventsPage() {
                     </p>
                   </div>
                 )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-4"
-                  onClick={() => setExpandedEvent(isExpanded ? null : event.id)}
-                >
-                  {isExpanded ? "Hide details" : "View details"}
-                </Button>
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setExpandedEvent(isExpanded ? null : event.id)}
+                  >
+                    {isExpanded ? "Hide details" : "View details"}
+                  </Button>
+                  <RemindMeButton
+                    event={event}
+                    reminder={reminders.find((r) => r.event_id === event.id) ?? null}
+                    signedIn={Boolean(userId)}
+                    onSet={setReminder}
+                    onCancel={cancelReminder}
+                  />
+                </div>
               </li>
             );
           })}
@@ -464,5 +482,114 @@ function EventsPage() {
         registration portal to publish live availability and registration links.
       </p>
     </AppShell>
+  );
+}
+
+type EventItem = {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  city: string;
+};
+
+function RemindMeButton({
+  event,
+  reminder,
+  signedIn,
+  onSet,
+  onCancel,
+}: {
+  event: EventItem;
+  reminder: { lead_minutes: number } | null;
+  signedIn: boolean;
+  onSet: (event: EventItem, leadMinutes: number) => Promise<void>;
+  onCancel: (eventId: string) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const choose = async (minutes: number) => {
+    setBusy(true);
+    try {
+      if (typeof Notification !== "undefined" && Notification.permission === "default") {
+        void Notification.requestPermission();
+      }
+      await onSet(event, minutes);
+      setOpen(false);
+      toast.success(`Reminder set for ${event.title}`, {
+        description: leadLabel(minutes),
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not set reminder");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const cancel = async () => {
+    setBusy(true);
+    try {
+      await onCancel(event.id);
+      setOpen(false);
+      toast(`Reminder cancelled for ${event.title}`);
+    } catch {
+      toast.error("Could not cancel reminder");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!signedIn) {
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => toast("Sign in to set event reminders")}
+      >
+        <Bell className="size-4" /> Remind me
+      </Button>
+    );
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant={reminder ? "secondary" : "outline"} size="sm" disabled={busy}>
+          {reminder ? <BellRing className="size-4" /> : <Bell className="size-4" />}
+          {reminder ? "Reminder set" : "Remind me"}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-60 p-2">
+        <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+          {reminder ? "Reminder timing" : "Remind me"}
+        </p>
+        <div className="grid">
+          {LEAD_OPTIONS.map((option) => (
+            <button
+              key={option.minutes}
+              type="button"
+              disabled={busy}
+              onClick={() => void choose(option.minutes)}
+              className={`rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-muted ${
+                reminder?.lead_minutes === option.minutes ? "font-semibold text-primary" : ""
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        {reminder ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void cancel()}
+            className="mt-1 w-full rounded-md px-2 py-2 text-left text-sm text-destructive transition-colors hover:bg-muted"
+          >
+            Cancel reminder
+          </button>
+        ) : null}
+      </PopoverContent>
+    </Popover>
   );
 }

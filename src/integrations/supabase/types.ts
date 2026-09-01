@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -47,6 +47,51 @@ export type Database = {
           onboarded?: boolean
           preferred_translation?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      reminders: {
+        Row: {
+          created_at: string
+          event_date_label: string
+          event_id: string
+          event_location: string | null
+          event_start: string
+          event_title: string
+          id: string
+          lead_minutes: number
+          notified_at: string | null
+          remind_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_date_label: string
+          event_id: string
+          event_location?: string | null
+          event_start: string
+          event_title: string
+          id?: string
+          lead_minutes?: number
+          notified_at?: string | null
+          remind_at: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_date_label?: string
+          event_id?: string
+          event_location?: string | null
+          event_start?: string
+          event_title?: string
+          id?: string
+          lead_minutes?: number
+          notified_at?: string | null
+          remind_at?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

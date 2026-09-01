@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Bookmark, Highlighter, LogIn, LogOut, StickyNote, Trash2 } from "lucide-react";
+import { BellRing, Bookmark, Highlighter, LogIn, LogOut, StickyNote, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useLibrary, type SavedVerse } from "@/lib/library";
 import { supabase } from "@/integrations/supabase/client";
+import { formatDateTime, leadLabel, useReminders } from "@/lib/reminders";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -29,6 +31,7 @@ export const Route = createFileRoute("/profile")({
 
 function ProfilePage() {
   const { entries, remove } = useLibrary();
+  const { reminders, cancelReminder } = useReminders();
   const [email, setEmail] = useState<string | null>(null);
   const bookmarks = entries.filter((e) => e.bookmarked);
   const highlights = entries.filter((e) => e.highlight);
@@ -101,6 +104,52 @@ function ProfilePage() {
           <Stat label="Highlights" value={highlights.length} />
           <Stat label="Notes" value={notes.length} />
         </div>
+      </section>
+
+      <section className="mt-6 rounded-3xl border border-border bg-card p-5 shadow-soft">
+        <div className="flex items-center gap-2">
+          <BellRing className="size-4 text-primary" />
+          <h2 className="text-base font-semibold">Reminders</h2>
+        </div>
+        {reminders.length ? (
+          <ul className="mt-4 space-y-3">
+            {reminders.map((reminder) => (
+              <li
+                key={reminder.id}
+                className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 rounded-2xl bg-muted/60 p-3"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{reminder.event_title}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {reminder.event_date_label}
+                    {reminder.event_location ? ` · ${reminder.event_location}` : ""}
+                  </p>
+                  <p className="mt-1 text-xs text-primary">
+                    {leadLabel(reminder.lead_minutes)} · {formatDateTime(reminder.remind_at)}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 shrink-0 rounded-full"
+                  aria-label={`Cancel reminder for ${reminder.event_title}`}
+                  onClick={() => {
+                    void cancelReminder(reminder.event_id).then(
+                      () => toast(`Reminder cancelled for ${reminder.event_title}`),
+                      () => toast.error("Could not cancel reminder"),
+                    );
+                  }}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-sm text-muted-foreground">
+            No reminders yet. Set one from any event on the Events page.
+          </p>
+        )}
       </section>
 
       <Tabs defaultValue="bookmarks" className="mt-6">
