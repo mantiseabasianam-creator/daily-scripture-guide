@@ -508,9 +508,128 @@ function EventsPage() {
         Event details are curated in this directory. Connect your church’s event feed or
         registration portal to publish live availability and registration links.
       </p>
+        </>
+      )}
     </AppShell>
   );
 }
+
+function ChurchCalendarSection({
+  reminders,
+  signedIn,
+  onSet,
+  onCancel,
+}: {
+  reminders: { event_id: string; lead_minutes: number }[];
+  signedIn: boolean;
+  onSet: (event: EventItem, leadMinutes: number) => Promise<void>;
+  onCancel: (eventId: string) => Promise<void>;
+}) {
+  const [category, setCategory] = useState<string>("All categories");
+  const allEvents = useMemo(() => getChurchCalendarEvents(), []);
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  const items = useMemo(
+    () =>
+      allEvents.filter(
+        (event) => category === "All categories" || event.category === category,
+      ),
+    [allEvents, category],
+  );
+
+  return (
+    <>
+      <section className="mt-5 rounded-2xl border border-border bg-card p-4 shadow-soft">
+        <label className="grid gap-1.5 text-sm font-medium sm:max-w-xs">
+          Category
+          <select
+            value={category}
+            onChange={(event) => setCategory(event.target.value)}
+            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            {["All categories", ...CALENDAR_CATEGORIES].map((option) => (
+              <option key={option}>{option}</option>
+            ))}
+          </select>
+        </label>
+        <p className="mt-3 text-xs leading-5 text-muted-foreground">
+          These observances repeat every year from their recurrence rule, so upcoming dates fill in
+          automatically — nothing to re-add each year.
+        </p>
+      </section>
+
+      <div className="mt-6 flex items-baseline justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">Upcoming church calendar</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {items.length} recurring service{items.length === 1 ? "" : "s"} at your local church
+          </p>
+        </div>
+        <Badge variant="secondary" className="shrink-0 rounded-full">
+          Local
+        </Badge>
+      </div>
+
+      <ul className="mt-4 space-y-3">
+        {items.map((event) => {
+          const isExpanded = expanded === event.id;
+          return (
+            <li key={event.id} className="rounded-2xl border border-border bg-card p-4 shadow-soft">
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                <div>
+                  <h3 className="text-base font-semibold">{event.title}</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">{event.ruleLabel}</p>
+                </div>
+                <Badge variant="secondary" className="shrink-0 rounded-full">
+                  {event.category}
+                </Badge>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <CalendarDays className="size-3.5" /> {event.date}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Clock className="size-3.5" /> {event.time}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Repeat className="size-3.5" /> Annually recurring
+                </span>
+              </div>
+              {isExpanded && (
+                <div className="mt-4 rounded-xl bg-muted/60 p-3 text-sm">
+                  <p className="leading-6 text-muted-foreground">{event.description}</p>
+                </div>
+              )}
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setExpanded(isExpanded ? null : event.id)}
+                >
+                  {isExpanded ? "Hide details" : "View details"}
+                </Button>
+                <RemindMeButton
+                  event={{
+                    id: event.id,
+                    title: event.title,
+                    date: event.date,
+                    time: event.time,
+                    city: "Local church",
+                  }}
+                  reminder={reminders.find((r) => r.event_id === event.id) ?? null}
+                  signedIn={signedIn}
+                  onSet={onSet}
+                  onCancel={onCancel}
+                />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </>
+  );
+}
+
 
 type EventItem = {
   id: string;
