@@ -326,7 +326,34 @@ function EventsPage() {
         </p>
       </section>
 
+      <div className="mt-5 grid grid-cols-2 gap-1 rounded-full bg-muted p-1 text-sm font-medium">
+        {(["nationwide", "calendar"] as const).map((tabValue) => (
+          <button
+            key={tabValue}
+            type="button"
+            onClick={() => setTab(tabValue)}
+            className={`rounded-full px-3 py-2 transition-colors ${
+              tab === tabValue
+                ? "bg-card text-foreground shadow-soft"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {tabValue === "nationwide" ? "Nationwide Events" : "Church Calendar"}
+          </button>
+        ))}
+      </div>
+
+      {tab === "calendar" ? (
+        <ChurchCalendarSection
+          reminders={reminders}
+          signedIn={Boolean(userId)}
+          onSet={setReminder}
+          onCancel={cancelReminder}
+        />
+      ) : (
+        <>
       <section className="mt-5 rounded-2xl border border-border bg-card p-4 shadow-soft">
+
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_180px_180px]">
           <label className="grid gap-1.5 text-sm font-medium">
             Your church network
