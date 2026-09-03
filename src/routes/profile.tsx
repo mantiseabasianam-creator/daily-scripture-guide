@@ -8,6 +8,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { useLibrary, type SavedVerse } from "@/lib/library";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDateTime, leadLabel, useReminders } from "@/lib/reminders";
+import { isLocalEventId } from "@/lib/church-calendar";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/profile")({
