@@ -121,7 +121,13 @@ function ProfilePage() {
                 className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 rounded-2xl bg-muted/60 p-3"
               >
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{reminder.event_title}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-sm font-medium">{reminder.event_title}</p>
+                    <Badge variant="secondary" className="shrink-0 rounded-full text-[10px]">
+                      {isLocalEventId(reminder.event_id) ? "Local" : "Nationwide"}
+                    </Badge>
+                  </div>
+
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {reminder.event_date_label}
                     {reminder.event_location ? ` · ${reminder.event_location}` : ""}
