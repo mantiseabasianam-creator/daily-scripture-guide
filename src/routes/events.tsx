@@ -264,6 +264,7 @@ const EVENT_TYPES = [
 ];
 
 function EventsPage() {
+  const [tab, setTab] = useState<"nationwide" | "calendar">("nationwide");
   const [church, setChurch] = useState<string>(CHURCHES[0]);
   const [nation, setNation] = useState<string>(NATIONS[0]);
   const [type, setType] = useState("All events");
