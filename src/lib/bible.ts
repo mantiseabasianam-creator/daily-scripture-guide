@@ -2,25 +2,82 @@ export type Testament = "old" | "new";
 
 export type Book = { name: string; chapters: number; testament: Testament };
 
-export const BOOKS: Book[] = ([
-  ["Genesis", 50], ["Exodus", 40], ["Leviticus", 27], ["Numbers", 36], ["Deuteronomy", 34],
-  ["Joshua", 24], ["Judges", 21], ["Ruth", 4], ["1 Samuel", 31], ["2 Samuel", 24],
-  ["1 Kings", 22], ["2 Kings", 25], ["1 Chronicles", 29], ["2 Chronicles", 36], ["Ezra", 10],
-  ["Nehemiah", 13], ["Esther", 10], ["Job", 42], ["Psalms", 150], ["Proverbs", 31],
-  ["Ecclesiastes", 12], ["Song of Solomon", 8], ["Isaiah", 66], ["Jeremiah", 52], ["Lamentations", 5],
-  ["Ezekiel", 48], ["Daniel", 12], ["Hosea", 14], ["Joel", 3], ["Amos", 9],
-  ["Obadiah", 1], ["Jonah", 4], ["Micah", 7], ["Nahum", 3], ["Habakkuk", 3],
-  ["Zephaniah", 3], ["Haggai", 2], ["Zechariah", 14], ["Malachi", 4],
-] as [string, number][]).map(([name, chapters]): Book => ({ name, chapters, testament: "old" }))
+export const BOOKS: Book[] = (
+  [
+    ["Genesis", 50],
+    ["Exodus", 40],
+    ["Leviticus", 27],
+    ["Numbers", 36],
+    ["Deuteronomy", 34],
+    ["Joshua", 24],
+    ["Judges", 21],
+    ["Ruth", 4],
+    ["1 Samuel", 31],
+    ["2 Samuel", 24],
+    ["1 Kings", 22],
+    ["2 Kings", 25],
+    ["1 Chronicles", 29],
+    ["2 Chronicles", 36],
+    ["Ezra", 10],
+    ["Nehemiah", 13],
+    ["Esther", 10],
+    ["Job", 42],
+    ["Psalms", 150],
+    ["Proverbs", 31],
+    ["Ecclesiastes", 12],
+    ["Song of Solomon", 8],
+    ["Isaiah", 66],
+    ["Jeremiah", 52],
+    ["Lamentations", 5],
+    ["Ezekiel", 48],
+    ["Daniel", 12],
+    ["Hosea", 14],
+    ["Joel", 3],
+    ["Amos", 9],
+    ["Obadiah", 1],
+    ["Jonah", 4],
+    ["Micah", 7],
+    ["Nahum", 3],
+    ["Habakkuk", 3],
+    ["Zephaniah", 3],
+    ["Haggai", 2],
+    ["Zechariah", 14],
+    ["Malachi", 4],
+  ] as [string, number][]
+)
+  .map(([name, chapters]): Book => ({ name, chapters, testament: "old" }))
   .concat(
-    ([
-      ["Matthew", 28], ["Mark", 16], ["Luke", 24], ["John", 21], ["Acts", 28],
-      ["Romans", 16], ["1 Corinthians", 16], ["2 Corinthians", 13], ["Galatians", 6], ["Ephesians", 6],
-      ["Philippians", 4], ["Colossians", 4], ["1 Thessalonians", 5], ["2 Thessalonians", 3], ["1 Timothy", 6],
-      ["2 Timothy", 4], ["Titus", 3], ["Philemon", 1], ["Hebrews", 13], ["James", 5],
-      ["1 Peter", 5], ["2 Peter", 3], ["1 John", 5], ["2 John", 1], ["3 John", 1],
-      ["Jude", 1], ["Revelation", 22],
-    ] as [string, number][]).map(([name, chapters]): Book => ({ name, chapters, testament: "new" })),
+    (
+      [
+        ["Matthew", 28],
+        ["Mark", 16],
+        ["Luke", 24],
+        ["John", 21],
+        ["Acts", 28],
+        ["Romans", 16],
+        ["1 Corinthians", 16],
+        ["2 Corinthians", 13],
+        ["Galatians", 6],
+        ["Ephesians", 6],
+        ["Philippians", 4],
+        ["Colossians", 4],
+        ["1 Thessalonians", 5],
+        ["2 Thessalonians", 3],
+        ["1 Timothy", 6],
+        ["2 Timothy", 4],
+        ["Titus", 3],
+        ["Philemon", 1],
+        ["Hebrews", 13],
+        ["James", 5],
+        ["1 Peter", 5],
+        ["2 Peter", 3],
+        ["1 John", 5],
+        ["2 John", 1],
+        ["3 John", 1],
+        ["Jude", 1],
+        ["Revelation", 22],
+      ] as [string, number][]
+    ).map(([name, chapters]): Book => ({ name, chapters, testament: "new" })),
   );
 
 export type Translation = { id: string; abbr: string; name: string };
@@ -56,9 +113,21 @@ export function verseId(v: { book_name: string; chapter: number; verse: number }
 }
 
 const VOTD = [
-  "John 3:16", "Psalms 23:1", "Philippians 4:13", "Jeremiah 29:11", "Proverbs 3:5",
-  "Isaiah 41:10", "Romans 8:28", "Joshua 1:9", "Psalms 46:1", "Matthew 11:28",
-  "2 Corinthians 5:17", "Psalms 118:24", "1 John 4:19", "Hebrews 11:1", "Galatians 5:22",
+  "John 3:16",
+  "Psalms 23:1",
+  "Philippians 4:13",
+  "Jeremiah 29:11",
+  "Proverbs 3:5",
+  "Isaiah 41:10",
+  "Romans 8:28",
+  "Joshua 1:9",
+  "Psalms 46:1",
+  "Matthew 11:28",
+  "2 Corinthians 5:17",
+  "Psalms 118:24",
+  "1 John 4:19",
+  "Hebrews 11:1",
+  "Galatians 5:22",
 ];
 
 export function verseOfTheDayRef(date = new Date()) {
