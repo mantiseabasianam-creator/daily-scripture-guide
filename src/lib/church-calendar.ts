@@ -1,34 +1,7 @@
+import { useCallback, useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
 export type CalendarCategory = "Family" | "Seasonal" | "Sacrament" | "Milestone";
-
-type Recurrence =
-  | { kind: "fixed"; month: number; day: number } // month is 1-12
-  | { kind: "nth-weekday"; month: number; weekday: number; nth: number } // nth 1-5, weekday 0=Sun
-  | { kind: "last-weekday"; month: number; weekday: number }
-  | { kind: "easter"; offsetDays: number }; // relative to Easter Sunday
-
-type CalendarDefinition = {
-  id: string;
-  title: string;
-  description: string;
-  category: CalendarCategory;
-  time: string;
-  ruleLabel: string;
-  recurrence: Recurrence;
-};
-
-export type CalendarEvent = {
-  id: string;
-  title: string;
-  description: string;
-  category: CalendarCategory;
-  /** Human readable resolved date, e.g. "June 21, 2026" */
-  date: string;
-  time: string;
-  /** Recurrence description, e.g. "3rd Sunday in June, every year" */
-  ruleLabel: string;
-  start: Date;
-  year: number;
-};
 
 export const CALENDAR_CATEGORIES: CalendarCategory[] = [
   "Family",
@@ -37,128 +10,58 @@ export const CALENDAR_CATEGORIES: CalendarCategory[] = [
   "Milestone",
 ];
 
-const CALENDAR_DEFINITIONS: CalendarDefinition[] = [
-  {
-    id: "mothers-day-service",
-    title: "Mother’s Day Service",
-    description:
-      "A celebration service honouring mothers in the congregation with special prayer, testimonies, and a family-focused message.",
-    category: "Family",
-    time: "10:00 AM",
-    ruleLabel: "2nd Sunday in May, every year",
-    recurrence: { kind: "nth-weekday", month: 5, weekday: 0, nth: 2 },
-  },
-  {
-    id: "fathers-day-service",
-    title: "Father’s Day Service",
-    description:
-      "A service of honour and encouragement for fathers and father figures, with prayer over households and men’s ministry highlights.",
-    category: "Family",
-    time: "10:00 AM",
-    ruleLabel: "3rd Sunday in June, every year",
-    recurrence: { kind: "nth-weekday", month: 6, weekday: 0, nth: 3 },
-  },
-  {
-    id: "childrens-day",
-    title: "Children’s Day",
-    description:
-      "Children lead worship, readings, and presentations, followed by games and a family lunch after service.",
-    category: "Family",
-    time: "9:30 AM",
-    ruleLabel: "2nd Sunday in October, every year",
-    recurrence: { kind: "nth-weekday", month: 10, weekday: 0, nth: 2 },
-  },
-  {
-    id: "harvest-thanksgiving",
-    title: "Harvest / Thanksgiving Sunday",
-    description:
-      "A thanksgiving service of gratitude with harvest offerings, testimonies, and gifts shared with families in need.",
-    category: "Seasonal",
-    time: "10:00 AM",
-    ruleLabel: "Last Sunday in November, every year",
-    recurrence: { kind: "last-weekday", month: 11, weekday: 0 },
-  },
-  {
-    id: "christmas-carol-service",
-    title: "Christmas Carol Service",
-    description:
-      "Nine lessons and carols by candlelight with the choir, congregational singing, and the Christmas Scripture readings.",
-    category: "Seasonal",
-    time: "6:00 PM",
-    ruleLabel: "December 24, every year",
-    recurrence: { kind: "fixed", month: 12, day: 24 },
-  },
-  {
-    id: "watch-night-service",
-    title: "Watch Night Service",
-    description:
-      "New Year’s Eve service of worship, thanksgiving, and prayer as the congregation crosses into the new year together.",
-    category: "Seasonal",
-    time: "10:00 PM",
-    ruleLabel: "December 31, every year",
-    recurrence: { kind: "fixed", month: 12, day: 31 },
-  },
-  {
-    id: "palm-sunday",
-    title: "Palm Sunday",
-    description:
-      "Holy Week begins with the procession of palms and the reading of Christ’s triumphal entry into Jerusalem.",
-    category: "Seasonal",
-    time: "10:00 AM",
-    ruleLabel: "Sunday before Easter, every year",
-    recurrence: { kind: "easter", offsetDays: -7 },
-  },
-  {
-    id: "good-friday-service",
-    title: "Good Friday Service",
-    description:
-      "A reflective service on the crucifixion with the seven last words, Scripture readings, and quiet prayer.",
-    category: "Seasonal",
-    time: "12:00 PM",
-    ruleLabel: "Friday before Easter, every year",
-    recurrence: { kind: "easter", offsetDays: -2 },
-  },
-  {
-    id: "easter-sunday",
-    title: "Easter Sunday",
-    description:
-      "Resurrection celebration with sunrise prayer, festive worship, and a message on the risen Christ.",
-    category: "Seasonal",
-    time: "9:00 AM",
-    ruleLabel: "Easter Sunday, every year",
-    recurrence: { kind: "easter", offsetDays: 0 },
-  },
-  {
-    id: "founders-day",
-    title: "Anniversary / Founder’s Day",
-    description:
-      "The church marks another year with thanksgiving, remembering its founding, and honouring long-serving members.",
-    category: "Milestone",
-    time: "10:00 AM",
-    ruleLabel: "1st Sunday in September, every year",
-    recurrence: { kind: "nth-weekday", month: 9, weekday: 0, nth: 1 },
-  },
-  {
-    id: "communion-sunday",
-    title: "Communion Sunday",
-    description:
-      "The Lord’s Supper is shared by the whole congregation, with a time of self-examination and prayer beforehand.",
-    category: "Sacrament",
-    time: "10:00 AM",
-    ruleLabel: "1st Sunday of every month",
-    recurrence: { kind: "nth-weekday", month: 0, weekday: 0, nth: 1 },
-  },
-  {
-    id: "baptism-dedication-sunday",
-    title: "Baptism / Dedication Sunday",
-    description:
-      "Believers are baptised and babies dedicated, with families welcomed and prayed for by the pastoral team.",
-    category: "Sacrament",
-    time: "11:00 AM",
-    ruleLabel: "Last Sunday of every quarter",
-    recurrence: { kind: "last-weekday", month: 0, weekday: 0 },
-  },
-];
+export type ChurchEventRow = {
+  id: string;
+  denomination: string;
+  nation: string | null;
+  event_key: string;
+  event_name: string;
+  description: string;
+  note: string | null;
+  category: string;
+  date_type: string;
+  recurrence_rule: string | null;
+  fixed_date: string | null;
+  time_label: string;
+  rule_label: string;
+  is_editable: boolean;
+};
+
+export type CalendarEvent = {
+  /** Reminder-safe id, namespaced by denomination + date. */
+  id: string;
+  rowId: string;
+  eventKey: string;
+  denomination: string;
+  nation: string | null;
+  title: string;
+  description: string;
+  note: string | null;
+  category: CalendarCategory;
+  /** Human readable resolved date, e.g. "June 21, 2026" */
+  date: string;
+  time: string;
+  ruleLabel: string;
+  isEditable: boolean;
+  start: Date;
+  year: number;
+};
+
+export const LOCAL_EVENT_PREFIX = "local:";
+
+export function isLocalEventId(eventId: string) {
+  return eventId.startsWith(LOCAL_EVENT_PREFIX);
+}
+
+function slug(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+/** Denomination a local reminder belongs to, or null when it is not a local event. */
+export function localEventDenomination(eventId: string): string | null {
+  if (!isLocalEventId(eventId)) return null;
+  return eventId.slice(LOCAL_EVENT_PREFIX.length).split(":")[0] ?? null;
+}
 
 /** Anonymous Gregorian computus. */
 function easterSunday(year: number): Date {
@@ -204,35 +107,42 @@ function withTime(date: Date, timeLabel: string): Date {
   return next;
 }
 
-/** All future occurrences of a definition within the lookahead window. */
-function occurrences(def: CalendarDefinition, from: Date, monthsAhead: number): Date[] {
+/**
+ * Resolves a stored rule into concrete dates.
+ * date_type: "fixed" (fixed_date "MM-DD"), "easter" ("offset:N"),
+ * "recurring_sunday" ("nth:<month>:<n>" | "last:<month>" | "monthly-nth:<n>" | "quarterly-last").
+ */
+function occurrences(row: ChurchEventRow, from: Date, monthsAhead: number): Date[] {
   const horizon = new Date(from);
   horizon.setMonth(horizon.getMonth() + monthsAhead);
   const dates: Date[] = [];
-  const startYear = from.getFullYear();
+  const rule = row.recurrence_rule ?? "";
 
-  for (let year = startYear; year <= horizon.getFullYear(); year += 1) {
-    if (def.recurrence.kind === "easter") {
+  for (let year = from.getFullYear(); year <= horizon.getFullYear(); year += 1) {
+    if (row.date_type === "easter") {
+      const offset = Number(rule.split(":")[1] ?? 0);
       const base = easterSunday(year);
-      base.setDate(base.getDate() + def.recurrence.offsetDays);
-      dates.push(withTime(base, def.time));
-    } else if (def.recurrence.kind === "fixed") {
-      dates.push(withTime(new Date(year, def.recurrence.month - 1, def.recurrence.day), def.time));
-    } else if (def.recurrence.kind === "nth-weekday") {
-      const months =
-        def.recurrence.month === 0
-          ? Array.from({ length: 12 }, (_, index) => index)
-          : [def.recurrence.month - 1];
-      for (const monthIndex of months) {
-        dates.push(
-          withTime(nthWeekday(year, monthIndex, def.recurrence.weekday, def.recurrence.nth), def.time),
-        );
-      }
+      base.setDate(base.getDate() + offset);
+      dates.push(withTime(base, row.time_label));
+    } else if (row.date_type === "fixed") {
+      const [month, day] = (row.fixed_date ?? "01-01").split("-").map(Number);
+      dates.push(withTime(new Date(year, (month ?? 1) - 1, day ?? 1), row.time_label));
     } else {
-      const months =
-        def.recurrence.month === 0 ? [2, 5, 8, 11] : [def.recurrence.month - 1];
-      for (const monthIndex of months) {
-        dates.push(withTime(lastWeekday(year, monthIndex, def.recurrence.weekday), def.time));
+      const [kind, first, second] = rule.split(":");
+      if (kind === "nth") {
+        dates.push(
+          withTime(nthWeekday(year, Number(first) - 1, 0, Number(second)), row.time_label),
+        );
+      } else if (kind === "last") {
+        dates.push(withTime(lastWeekday(year, Number(first) - 1, 0), row.time_label));
+      } else if (kind === "monthly-nth") {
+        for (let monthIndex = 0; monthIndex < 12; monthIndex += 1) {
+          dates.push(withTime(nthWeekday(year, monthIndex, 0, Number(first)), row.time_label));
+        }
+      } else if (kind === "quarterly-last") {
+        for (const monthIndex of [2, 5, 8, 11]) {
+          dates.push(withTime(lastWeekday(year, monthIndex, 0), row.time_label));
+        }
       }
     }
   }
@@ -246,34 +156,94 @@ function formatDateLabel(date: Date) {
   return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 }
 
-export const LOCAL_EVENT_PREFIX = "local:";
-
-export function isLocalEventId(eventId: string) {
-  return eventId.startsWith(LOCAL_EVENT_PREFIX);
+function toCategory(value: string): CalendarCategory {
+  return (CALENDAR_CATEGORIES as string[]).includes(value)
+    ? (value as CalendarCategory)
+    : "Seasonal";
 }
 
-/**
- * Resolves the recurrence rules into concrete, dated occurrences.
- * Runs against "now", so each year's dates auto-populate without manual edits.
- */
-export function getChurchCalendarEvents(
+/** Nation-specific rows override the shared (nation = null) row for the same event key. */
+export function resolveRows(rows: ChurchEventRow[], nation: string): ChurchEventRow[] {
+  const byKey = new Map<string, ChurchEventRow>();
+  for (const row of rows) {
+    const current = byKey.get(row.event_key);
+    if (!current || (row.nation === nation && current.nation !== nation)) {
+      byKey.set(row.event_key, row);
+    }
+  }
+  return [...byKey.values()];
+}
+
+export function buildCalendarEvents(
+  rows: ChurchEventRow[],
+  nation: string,
   now: Date = new Date(),
   monthsAhead = 14,
   perEvent = 2,
 ): CalendarEvent[] {
-  return CALENDAR_DEFINITIONS.flatMap((def) =>
-    occurrences(def, now, monthsAhead)
-      .slice(0, perEvent)
-      .map((start) => ({
-        id: `${LOCAL_EVENT_PREFIX}${def.id}:${start.toISOString().slice(0, 10)}`,
-        title: def.title,
-        description: def.description,
-        category: def.category,
-        date: formatDateLabel(start),
-        time: def.time,
-        ruleLabel: def.ruleLabel,
-        start,
-        year: start.getFullYear(),
-      })),
-  ).sort((a, b) => a.start.getTime() - b.start.getTime());
+  return resolveRows(rows, nation)
+    .flatMap((row) =>
+      occurrences(row, now, monthsAhead)
+        .slice(0, perEvent)
+        .map((start) => ({
+          id: `${LOCAL_EVENT_PREFIX}${slug(row.denomination)}:${row.event_key}:${start
+            .toISOString()
+            .slice(0, 10)}`,
+          rowId: row.id,
+          eventKey: row.event_key,
+          denomination: row.denomination,
+          nation: row.nation,
+          title: row.event_name,
+          description: row.description,
+          note: row.note,
+          category: toCategory(row.category),
+          date: formatDateLabel(start),
+          time: row.time_label,
+          ruleLabel: row.rule_label,
+          isEditable: row.is_editable,
+          start,
+          year: start.getFullYear(),
+        })),
+    )
+    .sort((a, b) => a.start.getTime() - b.start.getTime());
+}
+
+const COLUMNS =
+  "id, denomination, nation, event_key, event_name, description, note, category, date_type, recurrence_rule, fixed_date, time_label, rule_label, is_editable";
+
+export async function fetchChurchEventRows(denomination: string, nation: string) {
+  const { data, error } = await supabase
+    .from("church_events")
+    .select(COLUMNS)
+    .eq("denomination", denomination)
+    .or(`nation.is.null,nation.eq.${nation}`);
+  if (error) throw error;
+  return (data ?? []) as ChurchEventRow[];
+}
+
+/** Loads the calendar for a denomination + nation straight from the database. */
+export function useChurchCalendar(denomination: string, nation: string) {
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const rows = await fetchChurchEventRows(denomination, nation);
+      setEvents(buildCalendarEvents(rows, nation));
+      setError(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not load the church calendar");
+      setEvents([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [denomination, nation]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  return { events, loading, error, reload: load };
 }

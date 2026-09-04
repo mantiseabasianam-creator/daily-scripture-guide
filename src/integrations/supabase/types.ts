@@ -14,6 +14,119 @@ export type Database = {
   }
   public: {
     Tables: {
+      church_events: {
+        Row: {
+          category: string
+          created_at: string
+          date_type: string
+          denomination: string
+          description: string
+          event_key: string
+          event_name: string
+          fixed_date: string | null
+          id: string
+          is_editable: boolean
+          nation: string | null
+          note: string | null
+          recurrence_rule: string | null
+          rule_label: string
+          time_label: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          date_type: string
+          denomination: string
+          description?: string
+          event_key: string
+          event_name: string
+          fixed_date?: string | null
+          id?: string
+          is_editable?: boolean
+          nation?: string | null
+          note?: string | null
+          recurrence_rule?: string | null
+          rule_label?: string
+          time_label?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          date_type?: string
+          denomination?: string
+          description?: string
+          event_key?: string
+          event_name?: string
+          fixed_date?: string | null
+          id?: string
+          is_editable?: boolean
+          nation?: string | null
+          note?: string | null
+          recurrence_rule?: string | null
+          rule_label?: string
+          time_label?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      event_corrections: {
+        Row: {
+          church_event_id: string | null
+          created_at: string
+          current_date_label: string | null
+          denomination: string | null
+          event_key: string | null
+          event_name: string
+          id: string
+          message: string
+          nation: string | null
+          status: string
+          suggested_date: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          church_event_id?: string | null
+          created_at?: string
+          current_date_label?: string | null
+          denomination?: string | null
+          event_key?: string | null
+          event_name: string
+          id?: string
+          message: string
+          nation?: string | null
+          status?: string
+          suggested_date?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          church_event_id?: string | null
+          created_at?: string
+          current_date_label?: string | null
+          denomination?: string | null
+          event_key?: string | null
+          event_name?: string
+          id?: string
+          message?: string
+          nation?: string | null
+          status?: string
+          suggested_date?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_corrections_church_event_id_fkey"
+            columns: ["church_event_id"]
+            isOneToOne: false
+            referencedRelation: "church_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
