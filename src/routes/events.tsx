@@ -23,7 +23,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { toast } from "sonner";
 import { CHURCH_TRADITIONS, getChurchName, NATIONS } from "@/lib/church-directory";
 import { LEAD_OPTIONS, leadLabel, useReminders } from "@/lib/reminders";
-import { CALENDAR_CATEGORIES, getChurchCalendarEvents } from "@/lib/church-calendar";
+import { CALENDAR_CATEGORIES, useChurchCalendar } from "@/lib/church-calendar";
+import { SuggestCorrection } from "@/components/suggest-correction";
 
 export const Route = createFileRoute("/events")({
   head: () => ({
@@ -348,6 +349,8 @@ function EventsPage() {
 
       {tab === "calendar" ? (
         <ChurchCalendarSection
+          userDenomination={church}
+          nation={nation}
           reminders={reminders}
           signedIn={Boolean(userId)}
           onSet={setReminder}
@@ -518,46 +521,94 @@ function EventsPage() {
 }
 
 function ChurchCalendarSection({
+  userDenomination,
+  nation,
   reminders,
   signedIn,
   onSet,
   onCancel,
 }: {
+  userDenomination: string;
+  nation: string;
   reminders: { event_id: string; lead_minutes: number }[];
   signedIn: boolean;
   onSet: (event: EventItem, leadMinutes: number) => Promise<void>;
   onCancel: (eventId: string) => Promise<void>;
 }) {
   const [category, setCategory] = useState<string>("All categories");
-  const allEvents = useMemo(() => getChurchCalendarEvents(), []);
+  const [viewing, setViewing] = useState<string>(userDenomination);
   const [expanded, setExpanded] = useState<string | null>(null);
+
+  useEffect(() => {
+    setViewing(userDenomination);
+  }, [userDenomination]);
+
+  const { events: allEvents, loading, error } = useChurchCalendar(viewing, nation);
+  const isOwnCalendar = viewing === userDenomination;
 
   const items = useMemo(
     () =>
-      allEvents.filter(
-        (event) => category === "All categories" || event.category === category,
-      ),
+      allEvents.filter((event) => category === "All categories" || event.category === category),
     [allEvents, category],
   );
 
   return (
     <>
       <section className="mt-5 rounded-2xl border border-border bg-card p-4 shadow-soft">
-        <label className="grid gap-1.5 text-sm font-medium sm:max-w-xs">
-          Category
-          <select
-            value={category}
-            onChange={(event) => setCategory(event.target.value)}
-            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            {["All categories", ...CALENDAR_CATEGORIES].map((option) => (
-              <option key={option}>{option}</option>
-            ))}
-          </select>
-        </label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="grid gap-1.5 text-sm font-medium">
+            Browse other churches
+            <span className="relative">
+              <Building2 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <select
+                value={viewing}
+                onChange={(event) => setViewing(event.target.value)}
+                className="h-10 w-full appearance-none rounded-md border border-input bg-background py-2 pl-9 pr-9 text-sm shadow-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                {CHURCH_TRADITIONS.map((option) => (
+                  <option key={option}>
+                    {option}
+                    {option === userDenomination ? " (your church)" : ""}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            </span>
+          </label>
+          <label className="grid gap-1.5 text-sm font-medium">
+            Category
+            <select
+              value={category}
+              onChange={(event) => setCategory(event.target.value)}
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              {["All categories", ...CALENDAR_CATEGORIES].map((option) => (
+                <option key={option}>{option}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+          <Badge className="rounded-full">Viewing: {viewing} calendar</Badge>
+          {!isOwnCalendar && (
+            <>
+              <Badge variant="secondary" className="rounded-full">
+                Your calendar: {userDenomination}
+              </Badge>
+              <button
+                type="button"
+                onClick={() => setViewing(userDenomination)}
+                className="font-medium text-primary underline-offset-4 hover:underline"
+              >
+                Back to my calendar
+              </button>
+            </>
+          )}
+        </div>
         <p className="mt-3 text-xs leading-5 text-muted-foreground">
-          These observances repeat every year from their recurrence rule, so upcoming dates fill in
-          automatically — nothing to re-add each year.
+          {isOwnCalendar
+            ? "These observances repeat every year from their date rule, so upcoming dates fill in automatically — nothing to re-add each year."
+            : `You are previewing another church's calendar. Your saved default stays ${userDenomination}, and any reminder you set here is tagged as a ${viewing} service.`}
         </p>
       </section>
 
@@ -565,13 +616,25 @@ function ChurchCalendarSection({
         <div>
           <h2 className="text-lg font-semibold">Upcoming church calendar</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {items.length} recurring service{items.length === 1 ? "" : "s"} at your local church
+            {items.length} recurring service{items.length === 1 ? "" : "s"} ·{" "}
+            {getChurchName(nation, viewing)}
           </p>
         </div>
         <Badge variant="secondary" className="shrink-0 rounded-full">
           Local
         </Badge>
       </div>
+
+      {loading && (
+        <p className="mt-4 rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+          Loading the church calendar…
+        </p>
+      )}
+      {error && (
+        <p className="mt-4 rounded-2xl border border-dashed border-destructive/40 p-6 text-center text-sm text-destructive">
+          {error}
+        </p>
+      )}
 
       <ul className="mt-4 space-y-3">
         {items.map((event) => {
@@ -601,6 +664,9 @@ function ChurchCalendarSection({
               {isExpanded && (
                 <div className="mt-4 rounded-xl bg-muted/60 p-3 text-sm">
                   <p className="leading-6 text-muted-foreground">{event.description}</p>
+                  {event.note && (
+                    <p className="mt-2 leading-6 text-foreground">Note: {event.note}</p>
+                  )}
                 </div>
               )}
               <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -614,21 +680,30 @@ function ChurchCalendarSection({
                 <RemindMeButton
                   event={{
                     id: event.id,
-                    title: event.title,
+                    title: `${event.title} · ${event.denomination}`,
                     date: event.date,
                     time: event.time,
-                    city: "Local church",
+                    city: `${event.denomination} calendar`,
                   }}
                   reminder={reminders.find((r) => r.event_id === event.id) ?? null}
                   signedIn={signedIn}
                   onSet={onSet}
                   onCancel={onCancel}
                 />
+                <span className="ml-auto">
+                  <SuggestCorrection event={event} />
+                </span>
               </div>
             </li>
           );
         })}
       </ul>
+
+      {!loading && !error && items.length === 0 && (
+        <p className="mt-4 rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+          No services listed for this filter yet.
+        </p>
+      )}
     </>
   );
 }
