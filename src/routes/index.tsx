@@ -113,6 +113,10 @@ function Index() {
         )}
       </section>
 
+      <ChurchCalendarPreview />
+
+
+
       <section className="mt-10">
         <div className="max-w-xl">
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-primary">
