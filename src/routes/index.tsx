@@ -268,3 +268,58 @@ function Feature({
     </article>
   );
 }
+
+function ChurchCalendarPreview() {
+  const { denomination, nation } = useUserChurch();
+  const { events, loading } = useChurchCalendar(denomination, nation);
+  const upcoming = events.slice(0, 3);
+
+  return (
+    <section className="mt-6 rounded-3xl border border-border bg-card p-5 shadow-soft sm:p-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-primary">
+            Your church calendar
+          </p>
+          <h2 className="mt-1 font-display text-xl font-semibold">
+            Coming up at {getChurchName(nation, denomination)}
+          </h2>
+        </div>
+        <Badge variant="secondary" className="shrink-0 rounded-full">
+          {denomination}
+        </Badge>
+      </div>
+
+      {loading ? (
+        <div className="mt-5 space-y-3">
+          <Skeleton className="h-5 w-3/4" />
+          <Skeleton className="h-5 w-2/3" />
+        </div>
+      ) : upcoming.length ? (
+        <ul className="mt-4 space-y-2">
+          {upcoming.map((event) => (
+            <li
+              key={event.id}
+              className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 rounded-xl bg-muted/50 px-3 py-2.5"
+            >
+              <span className="text-sm font-medium">{event.title}</span>
+              <span className="text-xs text-muted-foreground">
+                {event.date} · {event.time}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-4 text-sm text-muted-foreground">
+          No services listed for your church yet.
+        </p>
+      )}
+
+      <Button asChild variant="outline" className="mt-4 rounded-xl">
+        <Link to="/events">
+          <CalendarDays /> See the full calendar
+        </Link>
+      </Button>
+    </section>
+  );
+}
