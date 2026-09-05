@@ -349,6 +349,8 @@ function EventsPage() {
 
       {tab === "calendar" ? (
         <ChurchCalendarSection
+          userDenomination={church}
+          nation={nation}
           reminders={reminders}
           signedIn={Boolean(userId)}
           onSet={setReminder}
