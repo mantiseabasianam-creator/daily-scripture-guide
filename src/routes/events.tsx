@@ -23,7 +23,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { toast } from "sonner";
 import { CHURCH_TRADITIONS, getChurchName, NATIONS } from "@/lib/church-directory";
 import { LEAD_OPTIONS, leadLabel, useReminders } from "@/lib/reminders";
-import { CALENDAR_CATEGORIES, getChurchCalendarEvents } from "@/lib/church-calendar";
+import { CALENDAR_CATEGORIES, useChurchCalendar } from "@/lib/church-calendar";
+import { SuggestCorrection } from "@/components/suggest-correction";
 
 export const Route = createFileRoute("/events")({
   head: () => ({
