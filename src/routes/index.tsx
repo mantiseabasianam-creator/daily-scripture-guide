@@ -20,6 +20,10 @@ import { VerseRow } from "@/components/verse-row";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchPassage, verseOfTheDayRef } from "@/lib/bible";
+import { useChurchCalendar } from "@/lib/church-calendar";
+import { getChurchName } from "@/lib/church-directory";
+import { useUserChurch } from "@/lib/user-church";
+import { Badge } from "@/components/ui/badge";
 import { useLibrary } from "@/lib/library";
 
 export const Route = createFileRoute("/")({
