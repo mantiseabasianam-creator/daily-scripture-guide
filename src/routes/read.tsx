@@ -179,13 +179,8 @@ function ReadPage() {
         <h1 className="text-2xl font-semibold">{reference}</h1>
         <p className="mt-1 font-sans text-xs text-muted-foreground">{bibleName}</p>
         {data?.copyright && (
-          <p className="mt-2 max-prose font-sans text-[11px] leading-relaxed text-muted-foreground/80">
+          <p className="mt-2 max-w-2xl font-sans text-[11px] leading-relaxed text-muted-foreground/80">
             {data.copyright}
-          </p>
-        )}
-        {data?.fromOfflineCache && (
-          <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground">
-            <WifiOff className="size-3.5" /> Offline copy saved on this device
           </p>
         )}
 
