@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const API_BIBLE_BASE = "https://api.scripture.api.bible/v1";
 
@@ -8,10 +9,102 @@ const API_BIBLE_BASE = "https://api.scripture.api.bible/v1";
  */
 export type BibleCatalogEntry = {
   id: string;
+  bibleId: string;
   abbr: string;
   name: string;
   language: string;
+  testamentComplete: boolean;
 };
+
+type ApiBible = Record<string, unknown> & {
+  id?: string;
+  dblId?: string;
+  name?: string;
+  abbreviation?: string;
+  abbreviationLocal?: string;
+  description?: string;
+  descriptionLocal?: string;
+  type?: string;
+  updatedAt?: string;
+  audioBibles?: unknown[];
+  language?: { name?: string; iso639_1?: string; iso?: string };
+};
+
+const ALLOWED_LANGUAGES = new Set(["english", "hausa", "igbo", "yoruba", "efik", "ibibio", "spanish", "french"]);
+const ENGLISH_ABBREVIATIONS = new Set(["KJV", "AMP", "NIV", "NKJV", "WEB"]);
+const SINGLE_TESTAMENT_PATTERN = /(?:new|old)\s+testament|\b(?:nt|ot)\s+only\b/i;
+
+function isAllowedLanguage(bible: ApiBible) {
+  const name = bible.language?.name?.trim().toLowerCase() ?? "";
+  const iso = bible.language?.iso639_1 ?? bible.language?.iso ?? "";
+  return ALLOWED_LANGUAGES.has(name) || (name === "english" && iso === "eng");
+}
+
+function isCompleteBible(bible: ApiBible) {
+  const searchable = [bible.name, bible.description, bible.descriptionLocal].filter(Boolean).join(" ");
+  return !SINGLE_TESTAMENT_PATTERN.test(searchable);
+}
+
+function duplicateKeys(bible: ApiBible) {
+  const name = String(bible.name ?? bible.descriptionLocal ?? "").trim().toLowerCase();
+  const abbreviation = String(bible.abbreviationLocal ?? bible.abbreviation ?? "").trim().toLowerCase();
+  return [
+    bible.dblId ? `dbl:${bible.dblId.trim().toLowerCase()}` : "",
+    name ? `name:${name}` : "",
+    abbreviation ? `abbr:${abbreviation}` : "",
+  ].filter(Boolean);
+}
+
+function editionScore(bible: ApiBible) {
+  const typeScore = bible.type?.toLowerCase() === "text" ? 2 : 0;
+  const audioScore = Array.isArray(bible.audioBibles) && bible.audioBibles.length > 0 ? 1 : 0;
+  const updatedAt = Date.parse(String(bible.updatedAt ?? ""));
+  return [typeScore, audioScore, Number.isNaN(updatedAt) ? 0 : updatedAt] as const;
+}
+
+function isBetterEdition(candidate: ApiBible, current: ApiBible) {
+  const candidateScore = editionScore(candidate);
+  const currentScore = editionScore(current);
+  for (let index = 0; index < candidateScore.length; index += 1) {
+    const candidateValue = candidateScore[index]!;
+    const currentValue = currentScore[index]!;
+    if (candidateValue !== currentValue) return candidateValue > currentValue;
+  }
+  return false;
+}
+
+function filterBibleCatalog(list: ApiBible[]): BibleCatalogEntry[] {
+  const candidates = list.filter((bible) => {
+    if (!bible.id || !isAllowedLanguage(bible) || !isCompleteBible(bible)) return false;
+    const language = bible.language?.name?.trim().toLowerCase() ?? "";
+    if (language !== "english") return true;
+    const abbreviation = String(bible.abbreviationLocal ?? bible.abbreviation ?? "").toUpperCase();
+    const name = String(bible.name ?? bible.descriptionLocal ?? "").toUpperCase();
+    return ENGLISH_ABBREVIATIONS.has(abbreviation) || [...ENGLISH_ABBREVIATIONS].some((value) => name.includes(value));
+  });
+
+  const selected: { keys: string[]; bible: ApiBible }[] = [];
+  for (const bible of candidates) {
+    const keys = duplicateKeys(bible);
+    const group = selected.find((entry) => entry.keys.some((key) => keys.includes(key)));
+    if (!group) selected.push({ keys, bible });
+    else if (isBetterEdition(bible, group.bible)) {
+      group.bible = bible;
+      group.keys = [...new Set([...group.keys, ...keys])];
+    } else {
+      group.keys = [...new Set([...group.keys, ...keys])];
+    }
+  }
+
+  return selected.map(({ bible }) => ({
+    id: String(bible.id),
+    bibleId: String(bible.id),
+    abbr: String(bible.abbreviationLocal ?? bible.abbreviation ?? bible.id),
+    name: String(bible.name ?? bible.descriptionLocal ?? "Unknown"),
+    language: String(bible.language?.name ?? bible.language?.iso639_1 ?? ""),
+    testamentComplete: true,
+  }));
+}
 
 /**
  * Lists every translation the user's API.Bible key grants access to.
@@ -19,39 +112,44 @@ export type BibleCatalogEntry = {
  */
 export const getBibles = createServerFn({ method: "GET" }).handler(
   async (): Promise<BibleCatalogEntry[]> => {
-    const apiKey = process.env["BIBLE_API_KEY"];
-    if (!apiKey) {
-      throw new Error("BIBLE_API_KEY secret is not configured");
-    }
-
-    const res = await fetch(`${API_BIBLE_BASE}/bibles`, {
-      headers: { "api-key": apiKey },
-    });
-    if (!res.ok) {
-      const detail = await res.text();
-      throw new Error(
-        `API.Bible catalog request failed (${res.status}): ${detail.slice(0, 200)}`,
-      );
-    }
-
-    const payload = (await res.json()) as {
-      data?: Array<Record<string, unknown>>;
-    };
-    const list = payload.data ?? [];
-
-    return list.map((b) => {
-      const lang = b["language"] as
-        | { name?: string; iso?: string }
-        | undefined;
-      return {
-        id: String(b["id"] ?? ""),
-        abbr: String(b["abbreviation"] ?? b["id"] ?? ""),
-        name: String(b["name"] ?? b["descriptionLocal"] ?? "Unknown"),
-        language: lang?.name ?? lang?.iso ?? "",
-      };
-    });
+    const { data, error } = await supabaseAdmin
+      .from("bible_versions")
+      .select('id, "bibleId", name, abbreviation, language, testament_complete')
+      .order("language")
+      .order("name");
+    if (error) throw new Error(`Bible version cache request failed: ${error.message}`);
+    return (data ?? []).map((bible) => ({
+      id: bible.id,
+      bibleId: bible.bibleId,
+      abbr: bible.abbreviation,
+      name: bible.name,
+      language: bible.language,
+      testamentComplete: bible.testament_complete,
+    }));
   },
 );
+
+/** Run from a scheduled server job after changing the API.Bible catalog. */
+export async function syncBibleCatalog(): Promise<number> {
+  const apiKey = process.env["BIBLE_API_KEY"];
+  if (!apiKey) throw new Error("BIBLE_API_KEY secret is not configured");
+  const res = await fetch(`${API_BIBLE_BASE}/bibles`, { headers: { "api-key": apiKey } });
+  if (!res.ok) throw new Error(`API.Bible catalog request failed (${res.status})`);
+  const payload = (await res.json()) as { data?: ApiBible[] };
+  const rows = filterBibleCatalog(payload.data ?? []).map((bible) => ({
+    id: bible.id,
+    bibleId: bible.bibleId,
+    name: bible.name,
+    abbreviation: bible.abbr,
+    language: bible.language,
+    testament_complete: bible.testamentComplete,
+  }));
+  const { error: clearError } = await supabaseAdmin.from("bible_versions").delete().neq("id", "");
+  if (clearError) throw new Error(`Bible version cache cleanup failed: ${clearError.message}`);
+  const { error } = await supabaseAdmin.from("bible_versions").upsert(rows, { onConflict: "bibleId" });
+  if (error) throw new Error(`Bible version cache update failed: ${error.message}`);
+  return rows.length;
+}
 
 const inputSchema = z.object({
   bibleId: z.string().min(1),
