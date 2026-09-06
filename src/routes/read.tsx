@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, WifiOff } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { VerseRow } from "@/components/verse-row";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BOOKS, TRANSLATIONS, fetchPassage, verseId } from "@/lib/bible";
+import { BOOKS, BOOK_USFM, verseId } from "@/lib/bible";
+import { getBiblePassage, getBibles } from "@/lib/bible-api.functions";
 import { useLibrary } from "@/lib/library";
 import { cn } from "@/lib/utils";
 
@@ -41,19 +42,47 @@ export const Route = createFileRoute("/read")({
 function ReadPage() {
   const [bookName, setBookName] = useState("John");
   const [chapter, setChapter] = useState(1);
-  const [translation, setTranslation] = useState("kjv");
+  const [bibleId, setBibleId] = useState("");
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const { data: library } = useLibrary();
 
+  const { data: bibles = [] } = useQuery({
+    queryKey: ["bibles"],
+    queryFn: () => getBibles(),
+  });
+
+  // Pick a sensible default once the catalog loads.
+  useEffect(() => {
+    if (bibleId || !bibles.length) return;
+    const preferred =
+      bibles.find((b) => /king james|kjv/i.test(`${b.name} ${b.abbr}`)) ??
+      bibles.find((b) => /niv|new international/i.test(`${b.name} ${b.abbr}`)) ??
+      bibles.find((b) => /esv|english standard/i.test(`${b.name} ${b.abbr}`)) ??
+      bibles[0]!;
+    setBibleId(preferred.id);
+  }, [bibles, bibleId]);
+
   const book = BOOKS.find((b) => b.name === bookName)!;
+  const usfm = BOOK_USFM[bookName] ?? bookName;
   const reference = `${bookName} ${chapter}`;
-  const abbr = TRANSLATIONS.find((t) => t.id === translation)?.abbr ?? translation.toUpperCase();
+  const selected = bibles.find((b) => b.id === bibleId);
+  const abbr = selected?.abbr ?? "—";
+  const bibleName = selected?.name ?? "Loading translations…";
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["passage", reference, translation],
-    queryFn: () => fetchPassage(reference, translation),
+    queryKey: ["passage", bibleId, usfm, chapter],
+    queryFn: () =>
+      getBiblePassage({ data: { bibleId, book: usfm, chapter: String(chapter) } }),
+    enabled: Boolean(bibleId),
   });
+
+  const verses = (data?.verses ?? []).map((v) => ({
+    book_name: bookName,
+    chapter,
+    verse: Number(v.id) || 0,
+    text: v.text,
+  }));
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -65,6 +94,8 @@ function ReadPage() {
     setChapter(1);
     setOpen(false);
   };
+
+  const loading = isLoading || !bibleId;
 
   return (
     <AppShell title={`${reference} · ${abbr}`}>
@@ -130,14 +161,14 @@ function ReadPage() {
           </SelectContent>
         </Select>
 
-        <Select value={translation} onValueChange={setTranslation}>
-          <SelectTrigger className="w-32 rounded-full">
-            <SelectValue />
+        <Select value={bibleId} onValueChange={setBibleId}>
+          <SelectTrigger className="w-44 rounded-full">
+            <SelectValue placeholder="Translation" />
           </SelectTrigger>
-          <SelectContent>
-            {TRANSLATIONS.map((t) => (
-              <SelectItem key={t.id} value={t.id}>
-                {t.abbr} — {t.name}
+          <SelectContent className="max-h-72">
+            {bibles.map((b) => (
+              <SelectItem key={b.id} value={b.id}>
+                {b.abbr} — {b.name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -146,16 +177,14 @@ function ReadPage() {
 
       <article className="mt-6">
         <h1 className="text-2xl font-semibold">{reference}</h1>
-        <p className="mt-1 font-sans text-xs text-muted-foreground">
-          {data?.translation_name ?? abbr}
-        </p>
-        {data?.fromOfflineCache && (
-          <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground">
-            <WifiOff className="size-3.5" /> Offline copy saved on this device
+        <p className="mt-1 font-sans text-xs text-muted-foreground">{bibleName}</p>
+        {data?.copyright && (
+          <p className="mt-2 max-w-2xl font-sans text-[11px] leading-relaxed text-muted-foreground/80">
+            {data.copyright}
           </p>
         )}
 
-        {isLoading ? (
+        {loading ? (
           <div className="mt-6 space-y-3">
             {Array.from({ length: 8 }).map((_, i) => (
               <Skeleton key={i} className="h-5 w-full" />
@@ -163,11 +192,11 @@ function ReadPage() {
           </div>
         ) : isError ? (
           <p className="mt-6 text-sm text-destructive">
-            This chapter isn’t available in {abbr}. Connect to the internet once to save it for offline reading.
+            This chapter isn’t available in {bibleName}. Connect to the internet once to save it for offline reading.
           </p>
         ) : (
           <div className="mt-4 space-y-1">
-            {data?.verses.map((v) => {
+            {verses.map((v) => {
               const id = verseId(v);
               return (
                 <VerseRow
