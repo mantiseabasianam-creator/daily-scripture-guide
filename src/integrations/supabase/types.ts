@@ -14,36 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      bible_versions: {
-        Row: {
-          id: string
-          bibleId: string
-          name: string
-          abbreviation: string
-          language: string
-          testament_complete: boolean
-          updated_at: string
-        }
-        Insert: {
-          id: string
-          bibleId: string
-          name: string
-          abbreviation: string
-          language: string
-          testament_complete?: boolean
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          bibleId?: string
-          name?: string
-          abbreviation?: string
-          language?: string
-          testament_complete?: boolean
-          updated_at?: string
-        }
-        Relationships: []
-      }
       church_events: {
         Row: {
           category: string
