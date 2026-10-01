@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const API_BIBLE_BASE = "https://api.scripture.api.bible/v1";
 
@@ -112,44 +111,23 @@ function filterBibleCatalog(list: ApiBible[]): BibleCatalogEntry[] {
  */
 export const getBibles = createServerFn({ method: "GET" }).handler(
   async (): Promise<BibleCatalogEntry[]> => {
-    const { data, error } = await supabaseAdmin
-      .from("bible_versions")
-      .select('id, "bibleId", name, abbreviation, language, testament_complete')
-      .order("language")
-      .order("name");
-    if (error) throw new Error(`Bible version cache request failed: ${error.message}`);
-    return (data ?? []).map((bible) => ({
-      id: bible.id,
-      bibleId: bible.bibleId,
-      abbr: bible.abbreviation,
-      name: bible.name,
-      language: bible.language,
-      testamentComplete: bible.testament_complete,
-    }));
+    const apiKey = process.env["BIBLE_API_KEY"];
+    if (!apiKey) throw new Error("BIBLE_API_KEY secret is not configured");
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+      const res = await fetch(`${API_BIBLE_BASE}/bibles`, {
+        headers: { "api-key": apiKey },
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error(`API.Bible catalog request failed (${res.status})`);
+      const payload = (await res.json()) as { data?: ApiBible[] };
+      return filterBibleCatalog(payload.data ?? []);
+    } finally {
+      clearTimeout(timer);
+    }
   },
 );
-
-/** Run from a scheduled server job after changing the API.Bible catalog. */
-export async function syncBibleCatalog(): Promise<number> {
-  const apiKey = process.env["BIBLE_API_KEY"];
-  if (!apiKey) throw new Error("BIBLE_API_KEY secret is not configured");
-  const res = await fetch(`${API_BIBLE_BASE}/bibles`, { headers: { "api-key": apiKey } });
-  if (!res.ok) throw new Error(`API.Bible catalog request failed (${res.status})`);
-  const payload = (await res.json()) as { data?: ApiBible[] };
-  const rows = filterBibleCatalog(payload.data ?? []).map((bible) => ({
-    id: bible.id,
-    bibleId: bible.bibleId,
-    name: bible.name,
-    abbreviation: bible.abbr,
-    language: bible.language,
-    testament_complete: bible.testamentComplete,
-  }));
-  const { error: clearError } = await supabaseAdmin.from("bible_versions").delete().neq("id", "");
-  if (clearError) throw new Error(`Bible version cache cleanup failed: ${clearError.message}`);
-  const { error } = await supabaseAdmin.from("bible_versions").upsert(rows, { onConflict: "bibleId" });
-  if (error) throw new Error(`Bible version cache update failed: ${error.message}`);
-  return rows.length;
-}
 
 const inputSchema = z.object({
   bibleId: z.string().min(1),
