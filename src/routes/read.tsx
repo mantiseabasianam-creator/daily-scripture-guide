@@ -47,9 +47,15 @@ function ReadPage() {
   const [open, setOpen] = useState(false);
   const { data: library } = useLibrary();
 
-  const { data: bibles = [] } = useQuery({
+  const {
+    data: bibles = [],
+    isError: biblesError,
+    isLoading: biblesLoading,
+    refetch: refetchBibles,
+  } = useQuery({
     queryKey: ["bibles"],
     queryFn: () => getBibles(),
+    retry: 1,
   });
 
   // Pick a sensible default once the catalog loads.
@@ -68,7 +74,13 @@ function ReadPage() {
   const reference = `${bookName} ${chapter}`;
   const selected = bibles.find((b) => b.id === bibleId);
   const abbr = selected?.abbr ?? "—";
-  const bibleName = selected?.name ?? "Loading translations…";
+  const bibleName =
+    selected?.name ??
+    (biblesError
+      ? "Translations unavailable"
+      : !biblesLoading && !bibles.length
+        ? "No translations available"
+        : "Loading translations…");
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["passage", bibleId, usfm, chapter],
@@ -95,7 +107,8 @@ function ReadPage() {
     setOpen(false);
   };
 
-  const loading = isLoading || !bibleId;
+  const catalogFailed = biblesError || (!biblesLoading && !bibles.length);
+  const loading = !catalogFailed && (isLoading || !bibleId);
 
   return (
     <AppShell title={`${reference} · ${abbr}`}>
@@ -163,7 +176,7 @@ function ReadPage() {
 
         <Select value={bibleId} onValueChange={setBibleId}>
           <SelectTrigger className="w-44 rounded-full">
-            <SelectValue placeholder="Translation" />
+            <SelectValue placeholder={biblesError ? "Unavailable" : biblesLoading ? "Loading…" : "Translation"} />
           </SelectTrigger>
           <SelectContent className="max-h-72">
             {bibles.map((b) => (
@@ -184,7 +197,18 @@ function ReadPage() {
           </p>
         )}
 
-        {loading ? (
+        {catalogFailed ? (
+          <div className="mt-6 space-y-3">
+            <p className="text-sm text-destructive">
+              {biblesError
+                ? "We couldn’t load the list of Bible versions. Please check your connection and try again."
+                : "No Bible versions are available right now."}
+            </p>
+            <Button variant="outline" className="rounded-full" onClick={() => refetchBibles()}>
+              Try again
+            </Button>
+          </div>
+        ) : loading ? (
           <div className="mt-6 space-y-3">
             {Array.from({ length: 8 }).map((_, i) => (
               <Skeleton key={i} className="h-5 w-full" />
