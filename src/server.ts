@@ -1,5 +1,7 @@
 import "./lib/error-capture";
 
+import serverEntry from "@tanstack/react-start/server-entry";
+
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 
@@ -7,15 +9,11 @@ type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
 };
 
-let serverEntryPromise: Promise<ServerEntry> | undefined;
-
+// Static import on purpose: a lazy import() here made the production bundler
+// split the server entry into a circular chunk pair, crashing every request
+// with "__exportAll is not a function".
 async function getServerEntry(): Promise<ServerEntry> {
-  if (!serverEntryPromise) {
-    serverEntryPromise = import("@tanstack/react-start/server-entry").then(
-      (m) => (m.default ?? m) as ServerEntry,
-    );
-  }
-  return serverEntryPromise;
+  return serverEntry as unknown as ServerEntry;
 }
 
 // h3 swallows in-handler throws into a normal 500 Response with body
