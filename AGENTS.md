@@ -8,3 +8,4 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+- src/server.ts imports @tanstack/react-start/server-entry statically, never via lazy import() — the lazy form makes the production bundle split into circular chunks and every request 500s ("__exportAll is not a function").
