@@ -29,8 +29,12 @@ type ApiBible = Record<string, unknown> & {
   language?: { name?: string; iso639_1?: string; iso?: string };
 };
 
-const ALLOWED_LANGUAGES = new Set(["english", "hausa", "igbo", "yoruba", "efik", "ibibio", "spanish", "french"]);
+const ALLOWED_LANGUAGES = new Set(["english", "hausa", "igbo", "yoruba", "efik", "ibibio", "french"]);
 const ENGLISH_ABBREVIATIONS = new Set(["KJV", "AMP", "NIV", "NKJV", "WEB"]);
+// Bibles that must always appear regardless of the general filter rules.
+const FORCED_BIBLE_IDS = new Set([
+  "63097d2a0a2f7db3-01", // NKJV — New King James Version (English)
+]);
 const SINGLE_TESTAMENT_PATTERN = /(?:new|old)\s+testament|\b(?:nt|ot)\s+only\b/i;
 
 function isAllowedLanguage(bible: ApiBible) {
