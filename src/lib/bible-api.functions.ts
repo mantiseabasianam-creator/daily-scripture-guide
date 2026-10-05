@@ -78,6 +78,7 @@ function isBetterEdition(candidate: ApiBible, current: ApiBible) {
 
 function filterBibleCatalog(list: ApiBible[]): BibleCatalogEntry[] {
   const candidates = list.filter((bible) => {
+    if (bible.id && FORCED_BIBLE_IDS.has(bible.id)) return true;
     if (!bible.id || !isAllowedLanguage(bible) || !isCompleteBible(bible)) return false;
     const language = bible.language?.name?.trim().toLowerCase() ?? "";
     if (language !== "english") return true;
