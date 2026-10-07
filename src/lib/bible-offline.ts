@@ -6,6 +6,7 @@ const CHAPTERS = "chapters";
 const TRANSLATIONS = "translations";
 const MAX_TRANSLATIONS = 2;
 const MAX_CHAPTERS = 2500;
+const PREFERENCE_KEY = "scripture-reader:selected-translation-v1";
 export const OFFLINE_CHAPTER_MESSAGE =
   "This chapter isn't downloaded yet — connect to the internet to read it, or it will download automatically next time you're online";
 
@@ -19,10 +20,32 @@ type CachedChapter = {
 };
 
 type CachedTranslation = { id: string; lastUsedAt: number };
+export type ReaderTranslationPreference = { id: string; abbr: string; name: string };
 
 let databasePromise: Promise<IDBDatabase | null> | null = null;
 let activeDownloadId: string | null = null;
 let downloadRunning = false;
+
+export function readTranslationPreference(): ReaderTranslationPreference | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const value = JSON.parse(window.localStorage.getItem(PREFERENCE_KEY) ?? "null") as
+      | ReaderTranslationPreference
+      | null;
+    return value && typeof value.id === "string" ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveTranslationPreference(preference: ReaderTranslationPreference) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(PREFERENCE_KEY, JSON.stringify(preference));
+  } catch {
+    // The reader remains usable if browser storage is unavailable.
+  }
+}
 
 function openDatabase(): Promise<IDBDatabase | null> {
   if (typeof indexedDB === "undefined") return Promise.resolve(null);

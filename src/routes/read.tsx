@@ -17,6 +17,14 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Skeleton } from "@/components/ui/skeleton";
 import { BOOKS, BOOK_USFM, verseId } from "@/lib/bible";
 import { getBiblePassage, getBibles } from "@/lib/bible-api.functions";
+import {
+  OFFLINE_CHAPTER_MESSAGE,
+  getBibleChapter,
+  readTranslationPreference,
+  saveTranslationPreference,
+  startSelectedTranslationDownload,
+  type ReaderTranslationPreference,
+} from "@/lib/bible-offline";
 import { useLibrary } from "@/lib/library";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +51,7 @@ function ReadPage() {
   const [bookName, setBookName] = useState("John");
   const [chapter, setChapter] = useState(1);
   const [bibleId, setBibleId] = useState("");
+  const [storedBible, setStoredBible] = useState<ReaderTranslationPreference | null>(null);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const { data: library } = useLibrary();
@@ -57,6 +66,14 @@ function ReadPage() {
     queryFn: () => getBibles(),
     retry: 1,
   });
+
+  useEffect(() => {
+    const preference = readTranslationPreference();
+    if (preference) {
+      setStoredBible(preference);
+      setBibleId(preference.id);
+    }
+  }, []);
 
   // Pick a sensible default once the catalog loads.
   useEffect(() => {
@@ -73,9 +90,11 @@ function ReadPage() {
   const usfm = BOOK_USFM[bookName] ?? bookName;
   const reference = `${bookName} ${chapter}`;
   const selected = bibles.find((b) => b.id === bibleId);
-  const abbr = selected?.abbr ?? "—";
+  const selectedName = selected?.name ?? (storedBible?.id === bibleId ? storedBible.name : undefined);
+  const selectedAbbr = selected?.abbr ?? (storedBible?.id === bibleId ? storedBible.abbr : undefined);
+  const abbr = selectedAbbr ?? "—";
   const bibleName =
-    selected?.name ??
+    selectedName ??
     (biblesError
       ? "Translations unavailable"
       : !biblesLoading && !bibles.length
@@ -84,10 +103,20 @@ function ReadPage() {
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["passage", bibleId, usfm, chapter],
-    queryFn: () =>
-      getBiblePassage({ data: { bibleId, book: usfm, chapter: String(chapter) } }),
+    queryFn: () => getBibleChapter(bibleId, usfm, chapter),
     enabled: Boolean(bibleId),
+    retry: (failureCount, error) =>
+      error instanceof Error && error.message === OFFLINE_CHAPTER_MESSAGE ? false : failureCount < 1,
   });
+
+  useEffect(() => {
+    if (data && selected) {
+      const preference = { id: selected.id, abbr: selected.abbr, name: selected.name };
+      setStoredBible(preference);
+      saveTranslationPreference(preference);
+    }
+    if (bibleId) startSelectedTranslationDownload(bibleId);
+  }, [bibleId, data, selected]);
 
   const verses = (data?.verses ?? []).map((v) => ({
     book_name: bookName,
@@ -108,7 +137,7 @@ function ReadPage() {
   };
 
   const catalogFailed = biblesError || (!biblesLoading && !bibles.length);
-  const loading = !catalogFailed && (isLoading || !bibleId);
+  const loading = isLoading || !bibleId;
 
   return (
     <AppShell title={`${reference} · ${abbr}`}>
@@ -174,8 +203,19 @@ function ReadPage() {
           </SelectContent>
         </Select>
 
-        <Select value={bibleId} onValueChange={setBibleId}>
-          <SelectTrigger className="w-44 rounded-full">
+        <Select
+          value={bibleId}
+          onValueChange={(id) => {
+            setBibleId(id);
+            const choice = bibles.find((item) => item.id === id);
+            if (choice) {
+              const preference = { id: choice.id, abbr: choice.abbr, name: choice.name };
+              setStoredBible(preference);
+              saveTranslationPreference(preference);
+            }
+          }}
+        >
+          <SelectTrigger className="w-44 rounded-full" disabled={biblesLoading || (!bibles.length && !bibleId)}>
             <SelectValue placeholder={biblesError ? "Unavailable" : biblesLoading ? "Loading…" : "Translation"} />
           </SelectTrigger>
           <SelectContent className="max-h-72">
@@ -184,9 +224,25 @@ function ReadPage() {
                 {b.abbr} — {b.name}
               </SelectItem>
             ))}
+            {!selected && bibleId && storedBible?.id === bibleId ? (
+              <SelectItem value={bibleId}>{storedBible.abbr} — {storedBible.name}</SelectItem>
+            ) : null}
           </SelectContent>
         </Select>
       </div>
+
+      {catalogFailed ? (
+        <p className="mt-3 text-xs text-muted-foreground" role="status">
+          {biblesError
+            ? "Bible versions are unavailable right now. Your saved translation can still be read offline."
+            : "No Bible versions are available right now."}
+          {biblesError ? (
+            <button className="ml-2 text-primary underline" onClick={() => void refetchBibles()}>
+              Try again
+            </button>
+          ) : null}
+        </p>
+      ) : null}
 
       <article className="mt-6">
         <h1 className="text-2xl font-semibold">{reference}</h1>
@@ -197,18 +253,7 @@ function ReadPage() {
           </p>
         )}
 
-        {catalogFailed ? (
-          <div className="mt-6 space-y-3">
-            <p className="text-sm text-destructive">
-              {biblesError
-                ? "We couldn’t load the list of Bible versions. Please check your connection and try again."
-                : "No Bible versions are available right now."}
-            </p>
-            <Button variant="outline" className="rounded-full" onClick={() => refetchBibles()}>
-              Try again
-            </Button>
-          </div>
-        ) : loading ? (
+        {loading ? (
           <div className="mt-6 space-y-3">
             {Array.from({ length: 8 }).map((_, i) => (
               <Skeleton key={i} className="h-5 w-full" />
@@ -216,7 +261,9 @@ function ReadPage() {
           </div>
         ) : isError ? (
           <p className="mt-6 text-sm text-destructive">
-            This chapter isn’t available in {bibleName}. Connect to the internet once to save it for offline reading.
+            {data === undefined && typeof navigator !== "undefined" && !navigator.onLine
+              ? OFFLINE_CHAPTER_MESSAGE
+              : `This chapter isn’t available in ${bibleName}. Connect to the internet once to save it for offline reading.`}
           </p>
         ) : (
           <div className="mt-4 space-y-1">
