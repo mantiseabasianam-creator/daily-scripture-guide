@@ -5,8 +5,52 @@
 //     React/TanStack dedupe, error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  vite: {
+    plugins: [
+      VitePWA({
+        strategies: "generateSW",
+        filename: "sw.js",
+        manifest: false,
+        injectRegister: false,
+        registerType: "autoUpdate",
+        includeAssets: ["offline.html", "favicon.ico", "pwa-icon.svg", "pwa-icon-maskable.svg"],
+        devOptions: { enabled: false },
+        workbox: {
+          globPatterns: ["**/*.{js,css,html,ico,png,svg,webmanifest}"],
+          navigateFallback: "/offline.html",
+          navigateFallbackDenylist: [/^\/~oauth(?:\/|$)/],
+          skipWaiting: true,
+          clientsClaim: true,
+          cleanupOutdatedCaches: true,
+          runtimeCaching: [
+            {
+              urlPattern: ({ request }) => request.mode === "navigate",
+              handler: "NetworkFirst",
+              options: {
+                cacheName: "scripture-reader-pages",
+                networkTimeoutSeconds: 5,
+                expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 14 },
+              },
+            },
+            {
+              urlPattern: ({ url, request }) =>
+                url.origin === self.location.origin &&
+                ["script", "style"].includes(request.destination) &&
+                /\.[a-f0-9]{8,}\.(?:js|css)$/i.test(url.pathname),
+              handler: "CacheFirst",
+              options: {
+                cacheName: "scripture-reader-hashed-assets",
+                expiration: { maxEntries: 150, maxAgeSeconds: 60 * 60 * 24 * 180 },
+              },
+            },
+          ],
+        },
+      }),
+    ],
+  },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this

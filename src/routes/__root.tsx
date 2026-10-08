@@ -15,6 +15,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { supabase } from "../integrations/supabase/client";
 import { Toaster } from "../components/ui/sonner";
 import { ReminderWatcher } from "../components/reminder-watcher";
+import { registerOfflineWorker } from "../lib/pwa-registration";
 
 function NotFoundComponent() {
   return (
@@ -140,9 +141,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      void navigator.serviceWorker.register("/service-worker.js");
-    }
+    void registerOfflineWorker();
   }, []);
 
   useEffect(() => {
