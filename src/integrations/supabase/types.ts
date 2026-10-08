@@ -208,6 +208,42 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_verses: {
+        Row: {
+          bookmarked: boolean
+          highlight: string | null
+          note: string | null
+          reference: string
+          text: string
+          translation: string
+          updated_at: string
+          user_id: string
+          verse_id: string
+        }
+        Insert: {
+          bookmarked?: boolean
+          highlight?: string | null
+          note?: string | null
+          reference: string
+          text: string
+          translation: string
+          updated_at?: string
+          user_id: string
+          verse_id: string
+        }
+        Update: {
+          bookmarked?: boolean
+          highlight?: string | null
+          note?: string | null
+          reference?: string
+          text?: string
+          translation?: string
+          updated_at?: string
+          user_id?: string
+          verse_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
