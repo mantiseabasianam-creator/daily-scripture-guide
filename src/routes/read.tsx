@@ -115,7 +115,7 @@ function ReadPage() {
       setStoredBible(preference);
       saveTranslationPreference(preference);
     }
-    if (bibleId) startSelectedTranslationDownload(bibleId);
+    if (data && bibleId) startSelectedTranslationDownload(bibleId);
   }, [bibleId, data, selected]);
 
   const verses = (data?.verses ?? []).map((v) => ({
