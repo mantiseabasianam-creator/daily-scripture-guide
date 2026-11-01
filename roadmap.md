@@ -1,0 +1,5 @@
+- [x] Cache selected Bible translation chapters in IndexedDB with a storage cap.
+- [x] Resume low-priority background downloads and serve cached chapters offline.
+- [x] Queue signed-in bookmark, highlight, and note edits for cloud sync.
+- [x] Configure generated offline worker registration safeguards and retire the legacy worker.
+- [ ] Verify signed-in online reading, cached offline reading, and uncached offline messaging.
