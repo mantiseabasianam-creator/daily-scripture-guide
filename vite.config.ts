@@ -20,14 +20,16 @@ export default defineConfig({
         devOptions: { enabled: false },
         workbox: {
           globPatterns: ["**/*.{js,css,woff,woff2}"],
+          globIgnores: ["**/service-worker.js"],
           navigateFallback: "/offline.html",
-          navigateFallbackDenylist: [/^\/~oauth(?:\/|$)/, /^\/read(?:\/|$)/],
+          navigateFallbackDenylist: [/^\/~oauth(?:\/|$)/],
           skipWaiting: true,
           clientsClaim: true,
           cleanupOutdatedCaches: true,
           runtimeCaching: [
             {
-              urlPattern: ({ url, request }) => request.mode === "navigate" && url.pathname === "/read",
+              urlPattern: ({ url, request }) =>
+                request.mode === "navigate" && !url.pathname.startsWith("/~oauth"),
               handler: "NetworkFirst",
               options: {
                 cacheName: "scripture-reader-pages",

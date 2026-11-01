@@ -22,6 +22,7 @@ type SyncOperation = {
   entry?: SavedVerse;
 };
 let syncInProgress = false;
+let syncListenersInstalled = false;
 
 function read(): Record<string, SavedVerse> {
   if (typeof window === "undefined") return {};
@@ -117,6 +118,17 @@ async function syncSavedVerseQueue() {
   }
 }
 
+function installSavedVerseSyncListeners() {
+  if (syncListenersInstalled || typeof window === "undefined") return;
+  syncListenersInstalled = true;
+  const retrySync = () => void syncSavedVerseQueue();
+  window.addEventListener("online", retrySync);
+  supabase.auth.onAuthStateChange(() => {
+    setTimeout(retrySync, 0);
+  });
+  retrySync();
+}
+
 export const HIGHLIGHTS = [
   { id: "gold", label: "Gold" },
   { id: "sky", label: "Sky" },
@@ -132,17 +144,10 @@ export function useLibrary() {
     sync();
     listeners.add(sync);
     window.addEventListener("storage", sync);
-    const retrySync = () => void syncSavedVerseQueue();
-    window.addEventListener("online", retrySync);
-    const { data: authSubscription } = supabase.auth.onAuthStateChange(() => {
-      setTimeout(retrySync, 0);
-    });
-    retrySync();
+    installSavedVerseSyncListeners();
     return () => {
       listeners.delete(sync);
       window.removeEventListener("storage", sync);
-      window.removeEventListener("online", retrySync);
-      authSubscription.subscription.unsubscribe();
     };
   }, []);
 
