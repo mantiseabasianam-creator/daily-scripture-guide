@@ -45,6 +45,32 @@ export async function registerOfflineWorker() {
     return;
   }
 
+  const oldRegistration = registrations.find((registration) =>
+    [registration.active, registration.waiting, registration.installing].some((worker) => {
+      if (!worker) return false;
+      try {
+        return new URL(worker.scriptURL).pathname === "/service-worker.js";
+      } catch {
+        return false;
+      }
+    }),
+  );
+  if (oldRegistration) {
+    try {
+      await oldRegistration.update();
+      for (let attempt = 0; attempt < 30; attempt += 1) {
+        const current = await navigator.serviceWorker.getRegistrations();
+        if (!current.some(isAppWorker)) break;
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+      const current = await navigator.serviceWorker.getRegistrations();
+      if (current.some(isAppWorker)) return;
+    } catch (error) {
+      console.error("The previous offline version could not be cleared yet.", error);
+      return;
+    }
+  }
+
   try {
     await navigator.serviceWorker.register("/sw.js", { scope: "/" });
   } catch (error) {

@@ -25,6 +25,7 @@ export type ReaderTranslationPreference = { id: string; abbr: string; name: stri
 let databasePromise: Promise<IDBDatabase | null> | null = null;
 let activeDownloadId: string | null = null;
 let downloadRunning = false;
+let reconnectListenerInstalled = false;
 
 export function readTranslationPreference(): ReaderTranslationPreference | null {
   if (typeof window === "undefined") return null;
@@ -51,7 +52,7 @@ function openDatabase(): Promise<IDBDatabase | null> {
   if (typeof indexedDB === "undefined") return Promise.resolve(null);
   if (databasePromise) return databasePromise;
 
-  databasePromise = new Promise((resolve, reject) => {
+  databasePromise = new Promise<IDBDatabase | null>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, 1);
     request.onupgradeneeded = () => {
       const database = request.result;
@@ -67,7 +68,7 @@ function openDatabase(): Promise<IDBDatabase | null> {
     request.onerror = () => reject(request.error ?? new Error("Unable to open offline Bible storage"));
   }).catch(() => null);
 
-  return databasePromise;
+  return databasePromise ?? Promise.resolve(null);
 }
 
 function chapterKey(translationId: string, bookCode: string, chapter: number) {
@@ -237,6 +238,12 @@ async function downloadSelectedTranslation() {
 export function startSelectedTranslationDownload(translationId: string) {
   if (!translationId) return;
   activeDownloadId = translationId;
+  if (!reconnectListenerInstalled && typeof window !== "undefined") {
+    reconnectListenerInstalled = true;
+    window.addEventListener("online", () => {
+      if (activeDownloadId) void downloadSelectedTranslation();
+    });
+  }
   void downloadSelectedTranslation();
 }
 

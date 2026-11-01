@@ -19,15 +19,15 @@ export default defineConfig({
         includeAssets: ["offline.html", "favicon.ico", "pwa-icon.svg", "pwa-icon-maskable.svg"],
         devOptions: { enabled: false },
         workbox: {
-          globPatterns: ["**/*.{js,css,html,ico,png,svg,webmanifest}"],
+          globPatterns: ["**/*.{js,css,woff,woff2}"],
           navigateFallback: "/offline.html",
-          navigateFallbackDenylist: [/^\/~oauth(?:\/|$)/],
+          navigateFallbackDenylist: [/^\/~oauth(?:\/|$)/, /^\/read(?:\/|$)/],
           skipWaiting: true,
           clientsClaim: true,
           cleanupOutdatedCaches: true,
           runtimeCaching: [
             {
-              urlPattern: ({ request }) => request.mode === "navigate",
+              urlPattern: ({ url, request }) => request.mode === "navigate" && url.pathname === "/read",
               handler: "NetworkFirst",
               options: {
                 cacheName: "scripture-reader-pages",
