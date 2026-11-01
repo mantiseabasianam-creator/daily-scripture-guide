@@ -19,7 +19,8 @@ export default defineConfig({
         includeAssets: ["offline.html", "favicon.ico", "pwa-icon.svg", "pwa-icon-maskable.svg"],
         devOptions: { enabled: false },
         workbox: {
-          globPatterns: ["**/*.{js,css,html,ico,png,svg,webmanifest}"],
+          globPatterns: ["**/*.{js,css,woff,woff2}"],
+          globIgnores: ["**/service-worker.js"],
           navigateFallback: "/offline.html",
           navigateFallbackDenylist: [/^\/~oauth(?:\/|$)/],
           skipWaiting: true,
@@ -27,7 +28,8 @@ export default defineConfig({
           cleanupOutdatedCaches: true,
           runtimeCaching: [
             {
-              urlPattern: ({ request }) => request.mode === "navigate",
+              urlPattern: ({ url, request }) =>
+                request.mode === "navigate" && url.pathname === "/read",
               handler: "NetworkFirst",
               options: {
                 cacheName: "scripture-reader-pages",

@@ -16,7 +16,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BOOKS, BOOK_USFM, verseId } from "@/lib/bible";
-import { getBiblePassage, getBibles } from "@/lib/bible-api.functions";
+import { getBibles } from "@/lib/bible-api.functions";
 import {
   OFFLINE_CHAPTER_MESSAGE,
   getBibleChapter,
@@ -115,7 +115,7 @@ function ReadPage() {
       setStoredBible(preference);
       saveTranslationPreference(preference);
     }
-    if (bibleId) startSelectedTranslationDownload(bibleId);
+    if (data && bibleId) startSelectedTranslationDownload(bibleId);
   }, [bibleId, data, selected]);
 
   const verses = (data?.verses ?? []).map((v) => ({
@@ -137,7 +137,7 @@ function ReadPage() {
   };
 
   const catalogFailed = biblesError || (!biblesLoading && !bibles.length);
-  const loading = isLoading || !bibleId;
+  const loading = (Boolean(bibleId) && isLoading) || (!bibleId && biblesLoading && !catalogFailed);
 
   return (
     <AppShell title={`${reference} · ${abbr}`}>
@@ -259,6 +259,10 @@ function ReadPage() {
               <Skeleton key={i} className="h-5 w-full" />
             ))}
           </div>
+        ) : !bibleId ? (
+          <p className="mt-6 text-sm text-destructive">
+            {OFFLINE_CHAPTER_MESSAGE}
+          </p>
         ) : isError ? (
           <p className="mt-6 text-sm text-destructive">
             {data === undefined && typeof navigator !== "undefined" && !navigator.onLine
