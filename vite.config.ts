@@ -29,7 +29,7 @@ export default defineConfig({
           runtimeCaching: [
             {
               urlPattern: ({ url, request }) =>
-                request.mode === "navigate" && !url.pathname.startsWith("/~oauth"),
+                request.mode === "navigate" && url.pathname === "/read",
               handler: "NetworkFirst",
               options: {
                 cacheName: "scripture-reader-pages",

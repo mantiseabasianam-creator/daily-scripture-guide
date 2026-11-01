@@ -137,7 +137,7 @@ function ReadPage() {
   };
 
   const catalogFailed = biblesError || (!biblesLoading && !bibles.length);
-  const loading = biblesLoading || (Boolean(bibleId) && isLoading) || (!bibleId && !catalogFailed);
+  const loading = (Boolean(bibleId) && isLoading) || (!bibleId && biblesLoading && !catalogFailed);
 
   return (
     <AppShell title={`${reference} · ${abbr}`}>
