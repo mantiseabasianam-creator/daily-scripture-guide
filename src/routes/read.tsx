@@ -261,7 +261,15 @@ function ReadPage() {
           </div>
         ) : !bibleId ? (
           <p className="mt-6 text-sm text-destructive">
-            {OFFLINE_CHAPTER_MESSAGE}
+            {typeof navigator !== "undefined" && !navigator.onLine
+              ? OFFLINE_CHAPTER_MESSAGE
+              : "Bible versions are unavailable. Connect to the internet and try again."}
+          </p>
+        ) : !data ? (
+          <p className="mt-6 text-sm text-destructive">
+            {typeof navigator !== "undefined" && !navigator.onLine
+              ? OFFLINE_CHAPTER_MESSAGE
+              : "This chapter isn’t available right now. Please try again."}
           </p>
         ) : isError ? (
           <p className="mt-6 text-sm text-destructive">
