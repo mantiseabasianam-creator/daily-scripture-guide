@@ -4,7 +4,7 @@ import { Apple, ArrowLeft, BookOpen, Chrome, Eye, EyeOff, KeyRound, Mail } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
+import { authClient } from "@/lib/authClient";
 import {
   emailSchema,
   fieldErrors,
@@ -27,6 +27,31 @@ export const Route = createFileRoute("/auth")({
 });
 
 type Mode = "sign-in" | "sign-up" | "forgot-password" | "reset-password";
+
+/** Error carrying a user-safe message that can be displayed verbatim. */
+class FriendlyAuthError extends Error {}
+
+const NETWORK_PATTERN =
+  /failed to fetch|networkerror|fetch failed|load failed|network request failed/i;
+
+/** Maps any auth failure to a friendly message; raw error text is never shown. */
+function friendlyAuthError(error: unknown): string {
+  if (error instanceof FriendlyAuthError) return error.message;
+  const raw = error instanceof Error ? error.message : "";
+  if (NETWORK_PATTERN.test(raw))
+    return "We couldn't reach the sign-in service. Check your internet connection and try again.";
+  if (/invalid login credentials/i.test(raw))
+    return "That email and password don't match an account. Please double-check them and try again.";
+  if (/already registered|already exists|user already/i.test(raw))
+    return "That email is already registered. Try signing in instead, or reset your password if you've forgotten it.";
+  if (/at least \d+ characters|weak password|password should/i.test(raw))
+    return "Your password needs at least 8 characters, with upper and lowercase letters and a number.";
+  if (/rate limit|too many/i.test(raw))
+    return "Too many attempts. Please wait a moment and try again.";
+  if (/confirm/i.test(raw))
+    return "Please verify your email first. Use the resend option below, then sign in.";
+  return "Something went wrong. Please try again.";
+}
 
 function AuthPage() {
   const [mode, setMode] = useState<Mode>(() =>
