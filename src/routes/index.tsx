@@ -246,6 +246,7 @@ function Index() {
           </ul>
         )}
       </section>
+      <InstallPromptBadge />
     </AppShell>
   );
 }
