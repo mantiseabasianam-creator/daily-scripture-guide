@@ -19,6 +19,7 @@ import { AppShell } from "@/components/app-shell";
 import { VerseRow } from "@/components/verse-row";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { InstallPromptBadge } from "@/components/install-prompt-badge";
 import { fetchPassage, verseOfTheDayRef } from "@/lib/bible";
 import { useChurchCalendar } from "@/lib/church-calendar";
 import { getChurchName } from "@/lib/church-directory";
