@@ -72,6 +72,7 @@ function AuthPage() {
   const [error, setError] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showResend, setShowResend] = useState(false);
 
   const strength = passwordStrength(password);
 
@@ -80,21 +81,31 @@ function AuthPage() {
     setMessage("");
     setError("");
     setErrors({});
+    setShowResend(false);
     setPassword("");
     setConfirmPassword("");
   };
 
   const handleOAuth = async (provider: "google" | "apple") => {
     setError("");
-    const result = await lovable.auth.signInWithOAuth(provider, {
-      redirect_uri: window.location.origin,
+    const { error: oauthError } = await authClient.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/profile` },
     });
-    if (result.error) {
-      setError(result.error.message);
+    if (oauthError) {
+      setError("We couldn't start the sign-in. Please try again.");
+    }
+  };
+
+  const handleResend = async () => {
+    setError("");
+    setMessage("");
+    const { error: resendError } = await authClient.auth.resend({ type: "signup", email });
+    if (resendError) {
+      setError(friendlyAuthError(resendError));
       return;
     }
-    if (result.redirected) return;
-    window.location.assign("/profile");
+    setMessage("Verification email sent. Please check your inbox (and spam folder).");
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
