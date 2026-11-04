@@ -113,6 +113,7 @@ function AuthPage() {
     setError("");
     setMessage("");
     setErrors({});
+    setShowResend(false);
 
     const validation =
       mode === "sign-up"
