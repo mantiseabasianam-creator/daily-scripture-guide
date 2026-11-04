@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useLibrary, type SavedVerse } from "@/lib/library";
-import { supabase } from "@/integrations/supabase/client";
+import { authClient } from "@/lib/authClient";
 import { formatDateTime, leadLabel, useReminders } from "@/lib/reminders";
 import { isLocalEventId } from "@/lib/church-calendar";
 import { Badge } from "@/components/ui/badge";
@@ -40,15 +40,15 @@ function ProfilePage() {
   const notes = entries.filter((e) => e.note);
 
   useEffect(() => {
-    void supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    void authClient.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
+    const { data: listener } = authClient.auth.onAuthStateChange((_event, session) => {
       setEmail(session?.user.email ?? null);
     });
     return () => listener.subscription.unsubscribe();
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await authClient.auth.signOut();
     setEmail(null);
   };
 
