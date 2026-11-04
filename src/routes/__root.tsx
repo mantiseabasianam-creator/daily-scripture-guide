@@ -143,6 +143,7 @@ function RootComponent() {
 
   useEffect(() => {
     void registerOfflineWorker();
+    initAuthClient();
   }, []);
 
   useEffect(() => {
