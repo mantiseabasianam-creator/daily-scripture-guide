@@ -44,7 +44,7 @@ function friendlyAuthError(error: unknown): string {
     return "That email and password don't match an account. Please double-check them and try again.";
   if (/already registered|already exists|user already/i.test(raw))
     return "That email is already registered. Try signing in instead, or reset your password if you've forgotten it.";
-  if (/at least \d+ characters|weak password|password should/i.test(raw))
+  if (/at least \d+ characters|weak password|password should|known to be weak|weak_password/i.test(raw))
     return "Your password needs at least 8 characters, with upper and lowercase letters and a number.";
   if (/rate limit|too many/i.test(raw))
     return "Too many attempts. Please wait a moment and try again.";
@@ -72,6 +72,7 @@ function AuthPage() {
   const [error, setError] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showResend, setShowResend] = useState(false);
 
   const strength = passwordStrength(password);
 
@@ -80,21 +81,31 @@ function AuthPage() {
     setMessage("");
     setError("");
     setErrors({});
+    setShowResend(false);
     setPassword("");
     setConfirmPassword("");
   };
 
   const handleOAuth = async (provider: "google" | "apple") => {
     setError("");
-    const result = await lovable.auth.signInWithOAuth(provider, {
-      redirect_uri: window.location.origin,
+    const { error: oauthError } = await authClient.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/profile` },
     });
-    if (result.error) {
-      setError(result.error.message);
+    if (oauthError) {
+      setError("We couldn't start the sign-in. Please try again.");
+    }
+  };
+
+  const handleResend = async () => {
+    setError("");
+    setMessage("");
+    const { error: resendError } = await authClient.auth.resend({ type: "signup", email });
+    if (resendError) {
+      setError(friendlyAuthError(resendError));
       return;
     }
-    if (result.redirected) return;
-    window.location.assign("/profile");
+    setMessage("Verification email sent. Please check your inbox (and spam folder).");
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -102,6 +113,7 @@ function AuthPage() {
     setError("");
     setMessage("");
     setErrors({});
+    setShowResend(false);
 
     const validation =
       mode === "sign-up"
@@ -124,19 +136,20 @@ function AuthPage() {
 
     try {
       if (mode === "sign-in") {
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        const { error: signInError } = await authClient.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
-        window.location.assign("/profile");
+        window.location.assign(`${window.location.origin}/profile`);
         return;
       }
 
       if (mode === "sign-up") {
-        const { data, error: signUpError } = await supabase.auth.signUp({
+        const { data, error: signUpError } = await authClient.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/profile`,
             data: {
+              display_name: `${firstName} ${lastName}`.trim(),
               first_name: firstName,
               last_name: lastName,
               church,
@@ -146,12 +159,23 @@ function AuthPage() {
           },
         });
         if (signUpError) throw signUpError;
-        setMessage(
-          data.session
-            ? "Your account is ready. Redirecting to your library…"
-            : "Check your email to confirm your account, then return to sign in.",
-        );
-        if (data.session) window.location.assign("/profile");
+
+        // A returned user with an empty identities array means the email is
+        // already registered.
+        if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+          throw new FriendlyAuthError(
+            "That email is already registered. Try signing in instead, or reset your password if you've forgotten it.",
+          );
+        }
+
+        // No confirmation-link step: move to the next step after a successful call.
+        if (data.session) {
+          setMessage("Your account is ready. Taking you to your library…");
+          window.location.assign(`${window.location.origin}/profile`);
+        } else {
+          setShowResend(true);
+          setMessage("Please verify your email first. Use the resend option below, then sign in.");
+        }
         return;
       }
 
@@ -168,9 +192,9 @@ function AuthPage() {
       if (updateError) throw updateError;
       setMessage("Your password has been updated. You can now continue to your library.");
     } catch (authError) {
-      setError(
-        authError instanceof Error ? authError.message : "Something went wrong. Please try again.",
-      );
+      const raw = authError instanceof Error ? authError.message : "";
+      if (/confirm/i.test(raw)) setShowResend(true);
+      setError(friendlyAuthError(authError));
     } finally {
       setIsSubmitting(false);
     }
@@ -400,6 +424,15 @@ function AuthPage() {
               <p role="status" className="rounded-xl bg-primary/10 p-3 text-sm text-primary">
                 {message}
               </p>
+            )}
+            {showResend && (
+              <button
+                type="button"
+                onClick={() => void handleResend()}
+                className="w-full text-sm font-medium text-primary underline-offset-2 hover:underline"
+              >
+                Resend verification email
+              </button>
             )}
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? "Please wait…" : copy.action}

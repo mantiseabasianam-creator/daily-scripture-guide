@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 - src/server.ts imports @tanstack/react-start/server-entry statically, never via lazy import() — the lazy form makes the production bundle split into circular chunks and every request 500s ("__exportAll is not a function").
 - Bible passage data is cached in IndexedDB and published offline navigation/assets use vite-plugin-pwa's generated worker behind one guarded registration wrapper; this keeps chapter data structured and prevents stale service workers from breaking previews.
+- Sign-up, login, session and sign-out flows use `src/lib/authClient.ts` (its own `createClient` with constants at the top, per the user's portability requirement); the generated client remains for data calls elsewhere. Never route these flows back through `lovable.auth`.

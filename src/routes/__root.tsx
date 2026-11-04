@@ -16,6 +16,7 @@ import { supabase } from "../integrations/supabase/client";
 import { Toaster } from "../components/ui/sonner";
 import { ReminderWatcher } from "../components/reminder-watcher";
 import { registerOfflineWorker } from "../lib/pwa-registration";
+import { initAuthClient } from "../lib/authClient";
 
 function NotFoundComponent() {
   return (
@@ -142,6 +143,7 @@ function RootComponent() {
 
   useEffect(() => {
     void registerOfflineWorker();
+    initAuthClient();
   }, []);
 
   useEffect(() => {
