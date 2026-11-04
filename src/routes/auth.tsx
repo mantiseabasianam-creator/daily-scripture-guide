@@ -136,19 +136,20 @@ function AuthPage() {
 
     try {
       if (mode === "sign-in") {
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        const { error: signInError } = await authClient.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
-        window.location.assign("/profile");
+        window.location.assign(`${window.location.origin}/profile`);
         return;
       }
 
       if (mode === "sign-up") {
-        const { data, error: signUpError } = await supabase.auth.signUp({
+        const { data, error: signUpError } = await authClient.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/profile`,
             data: {
+              display_name: `${firstName} ${lastName}`.trim(),
               first_name: firstName,
               last_name: lastName,
               church,
@@ -158,12 +159,23 @@ function AuthPage() {
           },
         });
         if (signUpError) throw signUpError;
-        setMessage(
-          data.session
-            ? "Your account is ready. Redirecting to your library…"
-            : "Check your email to confirm your account, then return to sign in.",
-        );
-        if (data.session) window.location.assign("/profile");
+
+        // A returned user with an empty identities array means the email is
+        // already registered.
+        if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+          throw new FriendlyAuthError(
+            "That email is already registered. Try signing in instead, or reset your password if you've forgotten it.",
+          );
+        }
+
+        // No confirmation-link step: move to the next step after a successful call.
+        if (data.session) {
+          setMessage("Your account is ready. Taking you to your library…");
+          window.location.assign(`${window.location.origin}/profile`);
+        } else {
+          setShowResend(true);
+          setMessage("Please verify your email first. Use the resend option below, then sign in.");
+        }
         return;
       }
 
