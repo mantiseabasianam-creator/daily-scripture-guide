@@ -192,9 +192,9 @@ function AuthPage() {
       if (updateError) throw updateError;
       setMessage("Your password has been updated. You can now continue to your library.");
     } catch (authError) {
-      setError(
-        authError instanceof Error ? authError.message : "Something went wrong. Please try again.",
-      );
+      const raw = authError instanceof Error ? authError.message : "";
+      if (/confirm/i.test(raw)) setShowResend(true);
+      setError(friendlyAuthError(authError));
     } finally {
       setIsSubmitting(false);
     }
@@ -424,6 +424,15 @@ function AuthPage() {
               <p role="status" className="rounded-xl bg-primary/10 p-3 text-sm text-primary">
                 {message}
               </p>
+            )}
+            {showResend && (
+              <button
+                type="button"
+                onClick={() => void handleResend()}
+                className="w-full text-sm font-medium text-primary underline-offset-2 hover:underline"
+              >
+                Resend verification email
+              </button>
             )}
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? "Please wait…" : copy.action}
