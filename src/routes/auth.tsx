@@ -1,5 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ClipboardEvent,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 import { Apple, ArrowLeft, BookOpen, Chrome, Eye, EyeOff, KeyRound, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +33,7 @@ export const Route = createFileRoute("/auth")({
   }),
 });
 
-type Mode = "sign-in" | "sign-up" | "forgot-password" | "reset-password";
+type Mode = "sign-in" | "sign-up" | "verify-email" | "forgot-password" | "reset-password";
 
 /** Error carrying a user-safe message that can be displayed verbatim. */
 class FriendlyAuthError extends Error {}
@@ -48,6 +55,12 @@ function friendlyAuthError(error: unknown): string {
     return "Your password needs at least 8 characters, with upper and lowercase letters and a number.";
   if (/rate limit|too many/i.test(raw))
     return "Too many attempts. Please wait a moment and try again.";
+  if (/token has expired or is invalid|otp_failed/i.test(raw))
+    return "That code is incorrect. Please try again.";
+  if (/otp_expired|code expired/i.test(raw))
+    return "This code has expired. Tap Resend code to get a new one.";
+  if (/otp_disabled/i.test(raw))
+    return "Email verification isn't available right now. Please try again later.";
   if (/confirm/i.test(raw))
     return "Please verify your email first. Use the resend option below, then sign in.";
   return "Something went wrong. Please try again.";
@@ -73,8 +86,23 @@ function AuthPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showResend, setShowResend] = useState(false);
+  const [otp, setOtp] = useState<string[]>(["", "", "", "", "", ""]);
+  const [resendIn, setResendIn] = useState(0);
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const strength = passwordStrength(password);
+
+  // 60-second resend countdown on the "Verify your email" screen.
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const timer = setTimeout(() => setResendIn((seconds) => seconds - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendIn]);
+
+  // Focus the first code box when the verification screen appears.
+  useEffect(() => {
+    if (mode === "verify-email") otpRefs.current[0]?.focus();
+  }, [mode]);
 
   const setAuthMode = (nextMode: Mode) => {
     setMode(nextMode);
@@ -84,6 +112,8 @@ function AuthPage() {
     setShowResend(false);
     setPassword("");
     setConfirmPassword("");
+    setOtp(["", "", "", "", "", ""]);
+    setResendIn(0);
   };
 
   const handleOAuth = async (provider: "google" | "apple") => {
@@ -106,6 +136,89 @@ function AuthPage() {
       return;
     }
     setMessage("Verification email sent. Please check your inbox (and spam folder).");
+  };
+
+  /** Confirms the 6-digit code in-app; runs automatically once all boxes fill. */
+  const handleVerify = async (code: string) => {
+    if (isSubmitting) return;
+    if (!/^\d{6}$/.test(code)) {
+      setError("Enter the 6-digit code from your email.");
+      return;
+    }
+    setError("");
+    setMessage("");
+    setIsSubmitting(true);
+    try {
+      const { error: verifyError } = await authClient.auth.verifyOtp({
+        email,
+        token: code,
+        type: "signup",
+      });
+      if (verifyError) throw verifyError;
+      setMessage("Email verified. Taking you to your library…");
+      window.location.assign(`${window.location.origin}/profile`);
+    } catch (verifyError) {
+      setOtp(["", "", "", "", "", ""]);
+      otpRefs.current[0]?.focus();
+      setError(friendlyAuthError(verifyError));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setError("");
+    setMessage("");
+    const { error: resendError } = await authClient.auth.resend({ type: "signup", email });
+    if (resendError) {
+      setError(friendlyAuthError(resendError));
+      return;
+    }
+    setResendIn(60);
+    setMessage("A new code is on its way. Please check your inbox (and spam folder).");
+  };
+
+  const handleOtpChange = (index: number, raw: string) => {
+    const digits = raw.replace(/\D/g, "");
+    if (!digits) {
+      setOtp((boxes) => boxes.map((digit, i) => (i === index ? "" : digit)));
+      return;
+    }
+    const next = [...otp];
+    let cursor = index;
+    for (const digit of digits) {
+      if (cursor > 5) break;
+      next[cursor] = digit;
+      cursor += 1;
+    }
+    setOtp(next);
+    if (next.every(Boolean)) {
+      void handleVerify(next.join(""));
+    } else {
+      otpRefs.current[Math.min(cursor, 5)]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Backspace") return;
+    if (otp[index]) {
+      setOtp((boxes) => boxes.map((digit, i) => (i === index ? "" : digit)));
+    } else if (index > 0) {
+      otpRefs.current[index - 1]?.focus();
+      setOtp((boxes) => boxes.map((digit, i) => (i === index - 1 ? "" : digit)));
+    }
+  };
+
+  const handleOtpPaste = (event: ClipboardEvent<HTMLInputElement>) => {
+    event.preventDefault();
+    const digits = event.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!digits) return;
+    setOtp(["", "", "", "", "", ""].map((_, i) => digits[i] ?? ""));
+    if (digits.length === 6) {
+      void handleVerify(digits);
+    } else {
+      otpRefs.current[digits.length]?.focus();
+    }
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -168,13 +281,13 @@ function AuthPage() {
           );
         }
 
-        // No confirmation-link step: move to the next step after a successful call.
         if (data.session) {
           setMessage("Your account is ready. Taking you to your library…");
           window.location.assign(`${window.location.origin}/profile`);
         } else {
-          setShowResend(true);
-          setMessage("Please verify your email first. Use the resend option below, then sign in.");
+          // Email confirmation is on: verify with the 6-digit code in-app.
+          setAuthMode("verify-email");
+          setResendIn(60);
         }
         return;
       }
@@ -211,6 +324,11 @@ function AuthPage() {
       title: "Create your account",
       description: "Save your notes, highlights, and bookmarks across devices.",
       action: "Create account",
+    },
+    "verify-email": {
+      title: "Verify your email",
+      description: "Enter the 6-digit code we emailed you to finish creating your account.",
+      action: "Verify",
     },
     "forgot-password": {
       title: "Reset your password",
