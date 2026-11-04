@@ -44,7 +44,7 @@ function friendlyAuthError(error: unknown): string {
     return "That email and password don't match an account. Please double-check them and try again.";
   if (/already registered|already exists|user already/i.test(raw))
     return "That email is already registered. Try signing in instead, or reset your password if you've forgotten it.";
-  if (/at least \d+ characters|weak password|password should/i.test(raw))
+  if (/at least \d+ characters|weak password|password should|known to be weak|weak_password/i.test(raw))
     return "Your password needs at least 8 characters, with upper and lowercase letters and a number.";
   if (/rate limit|too many/i.test(raw))
     return "Too many attempts. Please wait a moment and try again.";
