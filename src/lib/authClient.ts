@@ -9,8 +9,8 @@ import type { Database } from "@/integrations/supabase/types";
 // anon/publishable key) and are safe to ship in client code.
 // To point the app at a different backend, replace them here.
 // ============================================================
-export const SUPABASE_URL = "https://lhsygenwhvdkyjjuhkes.supabase.co";
-export const SUPABASE_ANON_KEY = "sb_publishable_Hiar6Gm5YKH-fM7GWJG6pQ_nJtAY_Mt";
+export const SUPABASE_URL = "https://YOUR-PROJECT-REF.supabase.co";
+export const SUPABASE_ANON_KEY = "sb_publishable_xxxxxxxxxxxx";
 
 /**
  * The auth client used by the sign-up, login, session and sign-out flows.
