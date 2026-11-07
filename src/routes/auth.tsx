@@ -359,7 +359,73 @@ function AuthPage() {
           <h1 className="mt-5 font-display text-2xl font-semibold">{copy.title}</h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">{copy.description}</p>
 
-          {mode !== "forgot-password" && mode !== "reset-password" && (
+          {mode === "verify-email" && (
+            <form
+              className="mt-5 space-y-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void handleVerify(otp.join(""));
+              }}
+            >
+              <p className="text-sm text-foreground">
+                We sent a 6-digit code to <span className="font-semibold">{email}</span>
+              </p>
+              <div className="flex justify-between gap-2" role="group" aria-label="Verification code">
+                {otp.map((digit, index) => (
+                  <Input
+                    key={index}
+                    ref={(element) => {
+                      otpRefs.current[index] = element;
+                    }}
+                    value={digit}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete={index === 0 ? "one-time-code" : "off"}
+                    maxLength={index === 0 ? 6 : 1}
+                    aria-label={`Digit ${index + 1}`}
+                    onChange={(event) => handleOtpChange(index, event.target.value)}
+                    onKeyDown={(event) => handleOtpKeyDown(index, event)}
+                    onPaste={handleOtpPaste}
+                    onFocus={(event) => event.target.select()}
+                    className="h-12 w-full max-w-12 px-0 text-center font-display text-xl"
+                  />
+                ))}
+              </div>
+              {error && (
+                <p role="alert" className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">
+                  {error}
+                </p>
+              )}
+              {message && (
+                <p role="status" className="rounded-xl bg-primary/10 p-3 text-sm text-primary">
+                  {message}
+                </p>
+              )}
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? "Please wait…" : "Verify"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={resendIn > 0}
+                onClick={() => void handleResendOtp()}
+              >
+                {resendIn > 0 ? `Resend code in ${resendIn}s` : "Resend code"}
+              </Button>
+              <div className="text-center text-sm text-muted-foreground">
+                <button
+                  type="button"
+                  className="font-medium text-primary hover:underline"
+                  onClick={() => setAuthMode("sign-up")}
+                >
+                  Wrong email? Go back
+                </button>
+              </div>
+            </form>
+          )}
+
+          {mode !== "verify-email" && mode !== "forgot-password" && mode !== "reset-password" && (
             <div className="mt-6 grid gap-2">
               <Button type="button" variant="outline" onClick={() => void handleOAuth("google")}>
                 <Chrome /> Continue with Google
@@ -373,6 +439,7 @@ function AuthPage() {
             </div>
           )}
 
+          {mode !== "verify-email" && (
           <form className="mt-5 space-y-4" onSubmit={(event) => void handleSubmit(event)}>
             {mode !== "reset-password" && (
               <label className="grid gap-1.5 text-sm font-medium">
@@ -556,6 +623,7 @@ function AuthPage() {
               {isSubmitting ? "Please wait…" : copy.action}
             </Button>
           </form>
+          )}
 
           <div className="mt-5 text-center text-sm text-muted-foreground">
             {mode === "sign-in" && (
