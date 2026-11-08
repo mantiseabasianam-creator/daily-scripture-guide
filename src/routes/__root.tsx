@@ -12,11 +12,10 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { supabase } from "../integrations/supabase/client";
 import { Toaster } from "../components/ui/sonner";
 import { ReminderWatcher } from "../components/reminder-watcher";
 import { registerOfflineWorker } from "../lib/pwa-registration";
-import { initAuthClient } from "../lib/authClient";
+import { authClient } from "../lib/authClient";
 
 function NotFoundComponent() {
   return (
@@ -143,13 +142,12 @@ function RootComponent() {
 
   useEffect(() => {
     void registerOfflineWorker();
-    initAuthClient();
   }, []);
 
   useEffect(() => {
     let isCurrent = true;
 
-    void supabase.auth.getSession().then(({ data }) => {
+    void authClient.auth.getSession().then(({ data }) => {
       if (!isCurrent) return;
       const isAuthPage = window.location.pathname === "/auth";
       if (!data.session && !isAuthPage) window.location.replace("/auth");
